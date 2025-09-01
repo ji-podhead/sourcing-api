@@ -44,7 +44,10 @@ services:
       - "9090:9090" # ROS2 WebSocket port
     network_mode: host
     depends_on:
-      - roscore
+      db:
+        condition: service_healthy
+      roscore:
+        condition: service_healthy
       # Sagt diesem Container, wo der ROS 1 Master ist
     working_dir: /home/developer
     # Change the entrypoint to execute the new script
@@ -60,7 +63,8 @@ services:
       - "3000:3000" # Dashboard UI port
     network_mode: host
     depends_on:
-      - ros_container
+      ros_container:
+        condition: service_started
     volumes:
       - ./dashboard_container/:/app/
 
@@ -72,6 +76,11 @@ services:
     image: ros:noetic-ros-core
     command: roscore
     network_mode: host
+    healthcheck:
+      test: ["CMD-SHELL", "source /opt/ros/noetic/setup.bash && rostopic list"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 
 
@@ -82,9 +91,12 @@ services:
     restart: unless-stopped
   
     depends_on:
-      - roscore
-      - dashboard_container
-      - ros_container # Stellt sicher, dass der ROS 2 Knoten zuerst startet
+      roscore:
+        condition: service_healthy
+      ros_container:
+        condition: service_started
+      dashboard_container:
+        condition: service_started
     environment:
       # Sagt diesem Container, wo der ROS 1 Master ist
       ROS_MASTER_URI: "http://200.0.0.243:11311"
@@ -101,6 +113,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./ros_container/init.sql:/docker-entrypoint-initdb.d/init.sql # Mount the init script
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d camera_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   adminer:
     image: adminer
@@ -109,7 +126,8 @@ services:
     ports:
       - "8080:8081"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     network_mode: host
 
 volumes:
