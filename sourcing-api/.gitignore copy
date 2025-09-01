@@ -1,0 +1,9 @@
+src/*
+*.swp
+rosbags/
+**/__pycache__/**
+**/node_modules/**
+dashboard_container/node_modules/*
+dashboard_container/node_modules/
+data/*
+data/

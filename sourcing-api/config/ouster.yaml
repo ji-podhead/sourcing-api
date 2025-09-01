@@ -1,0 +1,34 @@
+ouster/os_driver:
+  ros__parameters:
+    sensor_hostname: 200.0.0.242
+    udp_dest: ''
+    mtp_dest: ''
+    mtp_main: false
+    lidar_mode: 2048x10
+    timestamp_mode: TIME_FROM_ROS_TIME
+    ptp_utc_tai_offset: -37
+    udp_profile_lidar: ''
+    metadata: ''
+    lidar_port: 0
+    imu_port: 0
+    sensor_frame: os_sensor
+    lidar_frame: os_lidar
+    imu_frame: os_imu
+    point_cloud_frame: os_lidar
+    pub_static_tf: true
+    proc_mask: RAW
+    scan_ring: 0
+    use_system_default_qos: true
+    point_type: original
+    azimuth_window_start: 90000
+    azimuth_window_end: 270000
+    persist_config: false
+    attempt_reconnect: false
+    dormant_period_between_reconnects: 1
+    max_failed_reconnect_attempts: 2147483647
+    organized: true
+    destagger: true
+    min_range: 0
+    max_range: 1000
+    v_reduction: 1
+    min_scan_valid_columns_ratio: 0

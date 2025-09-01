@@ -1,0 +1,1374 @@
+{
+    "PayloadSize": {
+        "source": "group",
+        "features": {
+            "PayloadSize": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 5013504,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Provides the number of bytes transferred for each image or chunk on the stream channel. This includes any end-of-line, end-of-frame statistics or other stamp data. This is the total size of data payload for a data block."
+            }
+        }
+    },
+    "Transport Layer Control - GigEVision": {
+        "source": "group",
+        "features": {
+            "GevSCPSDoNotFragment": {
+                "value": true,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": ""
+            },
+            "GevGVSPExtendedIDMode": {
+                "options": [
+                    "On",
+                    "Off"
+                ],
+                "value": "Off",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Enables the extended IDs mode"
+            },
+            "GevSCPSPacketSizeMin": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 576,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "GevSCPSPacketSizeMax": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 16364,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "GevSCPSPacketSize": {
+                "min": "GevSCPSPacketSizeMin",
+                "max": "GevSCPSPacketSizeMax",
+                "representation": "int",
+                "value": 9000,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            }
+        }
+    },
+    "DeviceLinkHeartbeatTimeout": {
+        "source": "group",
+        "features": {
+            "DeviceLinkHeartbeatTimeout": {
+                "min": "5e5",
+                "max": "60e6",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Controls the current heartbeat timeout of the specific Link."
+            }
+        }
+    },
+    "FileAccessControl": {
+        "source": "category",
+        "features": {}
+    },
+    "AutoROI VCDProperties": {
+        "source": "group",
+        "features": {
+            "VCDAutoROILeft": {
+                "min": "0",
+                "max": "100",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": ""
+            },
+            "VCDAutoROITop": {
+                "min": "0",
+                "max": "100",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": ""
+            },
+            "VCDAutoROIWidth": {
+                "min": "0",
+                "max": "100",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": ""
+            },
+            "VCDAutoROIHeight": {
+                "min": "0",
+                "max": "100",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": ""
+            }
+        }
+    },
+    "Root": {
+        "source": "category",
+        "features": {
+            "TLParamsLocked": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            }
+        }
+    },
+    "ImageFormatControl": {
+        "source": "category",
+        "features": {
+            "SensorPixelWidth": {
+                "min": null,
+                "max": null,
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Physical size (pitch) in the x direction of a photo sensitive pixel unit."
+            },
+            "SensorPixelHeight": {
+                "min": null,
+                "max": null,
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Physical size (pitch) in the y direction of a photo sensitive pixel unit."
+            },
+            "SensorWidth": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 2448,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "SensorHeight": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 2048,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "Width": {
+                "min": "WidthMin",
+                "max": "WidthMax",
+                "representation": "int",
+                "value": 2448,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "Height": {
+                "min": "HeightMin",
+                "max": "HeightMax",
+                "representation": "int",
+                "value": 2048,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "OffsetX": {
+                "min": "0",
+                "max": "MaxOffsetX",
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "OffsetY": {
+                "min": "0",
+                "max": "MaxOffsetY",
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": ""
+            },
+            "OffsetAutoCenter": {
+                "options": [
+                    "Off",
+                    "On"
+                ],
+                "value": "On",
+                "type": "Enumeration",
+                "tooltip": "Auto-adjust OffsetX and OffsetY to select the center region of the sensor.",
+                "description": "Automatically adjust the values of OffsetX and OffsetY to select the center region of the sensor."
+            },
+            "PixelFormat": {
+                "options": [
+                    "Mono8",
+                    "Mono12Packed",
+                    "Mono16"
+                ],
+                "value": "Mono8",
+                "type": "Enumeration",
+                "tooltip": "Format of the pixels provided by the device",
+                "description": "Format of the pixels provided by the device"
+            },
+            "BinningHorizontal": {
+                "min": "1",
+                "max": "BinningMax",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Number of horizontal photo-sensitive cells to combine together. This increases the intensity (or signal to noise ratio) of the pixels and reduces the horizontal resolution (width) of the image. A value of 1 indicates that no horizontal binning is performed by the camera."
+            },
+            "BinningVertical": {
+                "min": "1",
+                "max": "BinningMax",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Number of vertical photo-sensitive cells to combine together. This increases the intensity (or signal to noise ratio) of the pixels and reduces the vertical resolution (height) of the image. A value of 1 indicates that no vertical binning is performed by the camera."
+            },
+            "DecimationHorizontal": {
+                "min": "1",
+                "max": "SkippingMax",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Horizontal sub-sampling of the image. This reduces the horizontal resolution (width) of the image by the specified horizontal decimation factor."
+            },
+            "DecimationVertical": {
+                "min": "1",
+                "max": "SkippingMax",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Vertical sub-sampling of the image. This reduces the vertical resolution (height) of the image by the specified vertical decimation factor."
+            },
+            "ReverseX": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": "Flip the image horizontally."
+            },
+            "ReverseY": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": "Flip the image vertically."
+            }
+        }
+    },
+    "AnalogControl": {
+        "source": "category",
+        "features": {
+            "BlackLevel": {
+                "min": "BrightnessMinConverter",
+                "max": "BrightnessMaxConverter",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Controls the analog black level as an absolute physical value. This represents a DC offset applied to the video signal"
+            },
+            "Gain": {
+                "min": "GainMin",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Controls the gain as an absolute physical value. This is an amplification factor applied to he video signal."
+            },
+            "GainAuto": {
+                "options": [
+                    "Off",
+                    "Continuous"
+                ],
+                "value": "Continuous",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Sets the automatic gain control mode."
+            },
+            "GainAutoLowerLimit": {
+                "min": "GainMin",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Lower limit for the GainAuto function",
+                "description": "Lower limit for the GainAuto function."
+            },
+            "GainAutoUpperLimit": {
+                "min": "GainMin",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Upper limit for the GainAuto function",
+                "description": "Upper limit for the GainAuto function."
+            },
+            "Gamma": {
+                "min": "1e-2",
+                "max": "5",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Controls the gamma correction of pixel intensity. This is typically used to compensate for nonlinearity of the display system (such as CRT)."
+            }
+        }
+    },
+    "AcquisitionControl": {
+        "source": "category",
+        "features": {
+            "AcquisitionMode": {
+                "options": [
+                    "Continuous"
+                ],
+                "value": "Continuous",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Sets the acquisition mode of the device. It defines mainly the number of frames to capture during an acquisition and the way the acquisition stops."
+            },
+            "AcquisitionFrameRate": {
+                "min": "MinFPS",
+                "max": "MaxFPS",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Controls the acquisition rate at which the frames are captured."
+            },
+            "ExposureTime": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Sets the Exposure time when ExposureMode is Timed and ExposureAuto is Off. This controls the duration where the photosensitive cells are exposed to light."
+            },
+            "ExposureAuto": {
+                "options": [
+                    "Off",
+                    "Continuous"
+                ],
+                "value": "Continuous",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Sets the automatic exposure mode when ExposureMode is Timed."
+            },
+            "ExposureAutoReference": {
+                "min": "0",
+                "max": "255",
+                "representation": "int",
+                "value": 128,
+                "type": "Integer",
+                "tooltip": "ExposureAuto/GainAuto target brightness",
+                "description": "Configures the target image brightness for the ExposureAuto/GainAuto algorithm."
+            },
+            "ExposureAutoLowerLimit": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Lower limit for the ExposureAuto function",
+                "description": "Lower limit for the ExposureAuto function."
+            },
+            "ExposureAutoUpperLimit": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Upper limit for the ExposureAuto function",
+                "description": "Upper limit for the ExposureAuto function."
+            },
+            "ExposureAutoUpperLimitAuto": {
+                "value": true,
+                "type": "Boolean",
+                "tooltip": "Auto-select ExposureAutoUpperLimit",
+                "description": "Automatically sets the upper limit to match the Acquisition Frame Rate."
+            },
+            "ExposureAutoHighlighReduction": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "Lets the ExposureAuto/GainAuto algorithm try to avoid over-exposures.",
+                "description": "Lets the ExposureAuto/GainAuto algorithm try to avoid over-exposures."
+            },
+            "ExposureAutoHighlightReduction": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "Lets the ExposureAuto/GainAuto algorithm try to avoid over-exposures.",
+                "description": "Lets the ExposureAuto/GainAuto algorithm try to avoid over-exposures."
+            },
+            "TriggerSelector": {
+                "options": [
+                    "FrameStart",
+                    "ExposureActive"
+                ],
+                "value": "FrameStart",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Selects the type of trigger to configure."
+            },
+            "TriggerMode": {
+                "options": [
+                    "Off",
+                    "On"
+                ],
+                "value": "Off",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Controls if the selected trigger is active."
+            },
+            "TriggerSource": {
+                "options": [
+                    "Line1",
+                    "Software",
+                    "Action0",
+                    "Any"
+                ],
+                "value": "Any",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Specifies the internal signal or physical input Line to use as the trigger source."
+            },
+            "TriggerActivation": {
+                "options": [
+                    "RisingEdge",
+                    "FallingEdge"
+                ],
+                "value": "RisingEdge",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Specifies the activation mode of the trigger"
+            },
+            "TriggerDelay": {
+                "min": "0",
+                "max": "1000000",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Specifies the delay to apply after the trigger reception before activating it."
+            },
+            "TriggerDebouncer": {
+                "min": "0",
+                "max": "1e6",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Specifies the time for which trigger input has to be low in order accept the next trigger signal.",
+                "description": "Specifies the time for which trigger input has to be low in order accept the next trigger signal."
+            },
+            "TriggerMask": {
+                "min": "0",
+                "max": "1e6",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Specifies the time for which trigger pulses are ignored after accepting a trigger signal.",
+                "description": "Specifies the time for which trigger pulses are ignored after accepting a trigger signal."
+            },
+            "TriggerDenoise": {
+                "min": "0",
+                "max": "1e5",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Specifies the time for which trigger input has to be high in order to be accepted as a trigger signal.",
+                "description": "Specifies the time for which trigger input has to be high in order to be accepted as a trigger signal."
+            },
+            "TriggerOverlap": {
+                "options": [
+                    "Off",
+                    "ReadOut"
+                ],
+                "value": "ReadOut",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Specifies the type trigger overlap permitted with the previous frame. This defines when a valid trigger will be accepted for a new frame."
+            },
+            "AcquisitionBurstFrameCount": {
+                "min": "1",
+                "max": "TriggerBurstCountMax",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Number of frames to acquire for each trigger."
+            },
+            "AcquisitionBurstInterval": {
+                "min": "100",
+                "max": "1000000",
+                "representation": "Linear",
+                "value": 100,
+                "type": "Integer",
+                "tooltip": "Minimum interval between frames in an acquisition burst.",
+                "description": "Minimum interval between frames in an acquisition burst."
+            },
+            "IMXLowLatencyTriggerMode": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "Enable low-latency trigger mode",
+                "description": "Enables the low-latency mode for IMX global shutter sensors. This mode reduces the jitter between trigger input and exposure start, but disallows trigger overlap."
+            }
+        }
+    },
+    "TransportLayerControl": {
+        "source": "category",
+        "features": {}
+    },
+    "DeviceControl": {
+        "source": "category",
+        "features": {
+            "DeviceType": {
+                "options": [
+                    "Transmitter"
+                ],
+                "value": "Transmitter",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Returns the device type."
+            },
+            "DeviceScanType": {
+                "options": [
+                    "Areascan"
+                ],
+                "value": "Areascan",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Returns the scan type of the sensor of the device."
+            },
+            "DeviceSFNCVersionMajor": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 2,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Major version of the Standard Features Naming Convention that was used to create the device's GenICam XML"
+            },
+            "DeviceSFNCVersionMinor": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Minor version of the Standard Features Naming Convention that was used to create the device's GenICam XML"
+            },
+            "DeviceSFNCVersionSubMinor": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Sub minor version of the Standard Features Naming Convention that was used to create the device's GenICam XML"
+            },
+            "DeviceTLType": {
+                "options": [
+                    "GigEVision"
+                ],
+                "value": "GigEVision",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Transport Layer type of the device."
+            },
+            "DeviceTLVersionSubMinor": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Sub minor version of the Transport Layer of the device."
+            },
+            "DeviceLinkThroughputLimitMode": {
+                "options": [
+                    "On",
+                    "Off"
+                ],
+                "value": "Off",
+                "type": "Enumeration",
+                "tooltip": "Controls if the DeviceLinkThroughputLimit is active.",
+                "description": "Controls if the DeviceLinkThroughputLimit is active. When disabled, lower level TL specific features are expected to control the throughput. When enabled, DeviceLinkThroughputLimit controls the overall throughput."
+            },
+            "DeviceLinkThroughputLimit": {
+                "min": "1000000",
+                "max": "125000000",
+                "representation": "int",
+                "value": 125000000,
+                "type": "Integer",
+                "tooltip": "Limits the maximum bandwidth of the data that will be streamed out by the device on the selected Link.",
+                "description": "Limits the maximum bandwidth of the data that will be streamed out by the device on the selected Link. If necessary, delays will be uniformly inserted between transport layer packets in order to control the peak bandwidth."
+            },
+            "DeviceLinkSelector": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Selects which Link of the device to control."
+            },
+            "DeviceStreamChannelCount": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Indicates the number of streaming channels supported by the device."
+            },
+            "DeviceStreamChannelSelector": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Selects the stream channel to control."
+            },
+            "DeviceStreamChannelType": {
+                "options": [
+                    "Transmitter"
+                ],
+                "value": "Transmitter",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Reports the type of the stream channel."
+            },
+            "DeviceStreamChannelLink": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Index of device`s Link to use for streaming the specifed stream channel."
+            },
+            "DeviceStreamChannelEndianness": {
+                "options": [
+                    "Little"
+                ],
+                "value": "Little",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Endianess of multi-byte pixel data for this stream."
+            },
+            "DeviceStreamChannelPacketSize": {
+                "min": "GevSCPSPacketSizeMin",
+                "max": "GevSCPSPacketSizeMax",
+                "representation": "int",
+                "value": 9000,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Specifies the stream packet size, in bytes, to send on the selected channel."
+            },
+            "TimestampLatchValue": {
+                "min": "0",
+                "max": "9223372036854775807",
+                "representation": "PureNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "Returns the latched value of the timestamp counter",
+                "description": "Returns the latched value of the timestamp counter. The timestamp must first be latched by using the Timestamp Control Latch command."
+            },
+            "DeviceTemperatureSelector": {
+                "options": [
+                    "Sensor",
+                    "Mainboard",
+                    "Powerboard"
+                ],
+                "value": "Mainboard",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Selects the location within the device, where the temperature will be measured."
+            },
+            "DeviceTemperature": {
+                "min": null,
+                "max": null,
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "",
+                "description": "Device temperature in degrees Celsius (\u00b0C). It is measured at the location selected by DeviceTemperatureSelector."
+            }
+        }
+    },
+    "ActionControl": {
+        "source": "category",
+        "features": {
+            "ActionDeviceKey": {
+                "min": null,
+                "max": null,
+                "representation": "HexNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "Provides the device key that allows the device to check the validity of action commands.",
+                "description": "Provides the device key that allows the device to check the validity of action commands. The device internal assertion of an action signal is only authorized if the ActionDeviceKey and the action device key value in the protocol message are equal."
+            },
+            "ActionSelector": {
+                "min": "0",
+                "max": "NumActionSignalsMinusOne",
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Selects to which Action Signal further Action settings apply."
+            },
+            "ActionGroupKey": {
+                "min": null,
+                "max": null,
+                "representation": "HexNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Provides the key that the device will use to validate the action on reception of the action protocol message."
+            },
+            "ActionGroupMask": {
+                "min": null,
+                "max": null,
+                "representation": "HexNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Provides the mask that the device will use to validate the action on reception of the action protocol message."
+            },
+            "ActionQueueSize": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": 4,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Indicates the size of the scheduled action commands queue. This number represents the maximum number of\n      scheduled action commands that can be pending at a given point in time."
+            }
+        }
+    },
+    "ActionScheduler": {
+        "source": "category",
+        "features": {
+            "ActionSchedulerTime": {
+                "min": "0",
+                "max": "9223372036854775807",
+                "representation": "PureNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "Camera time for when the action is to be scheduled",
+                "description": "Camera time for when the action is to be scheduled."
+            },
+            "ActionSchedulerInterval": {
+                "min": "0",
+                "max": "4294967295",
+                "representation": "PureNumber",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "Action repetition interval. A value of 0 schedules the action to be executed only once",
+                "description": "Action repetition interval. A value of 0 schedules the action to be executed only once."
+            },
+            "ActionSchedulerStatus": {
+                "options": [
+                    "ActionSchedulerStatus_Idle",
+                    "ActionSchedulerStatus_Scheduled"
+                ],
+                "value": "ActionSchedulerStatus_Idle",
+                "type": "Enumeration",
+                "tooltip": "Indicates whether there are actions scheduled.",
+                "description": "Indicates whether there are actions scheduled."
+            }
+        }
+    },
+    "MultiFrameSetOutputMode": {
+        "source": "category",
+        "features": {
+            "MultiFrameSetOutputModeEnable": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "Enables the sensor to output a sequence of 2 or 4 frames with configurable exposure times and gain values.",
+                "description": "Enables the sensor to output a sequence of 2 or 4 frames with configurable exposure times and gain values."
+            },
+            "MultiFrameSetOutputModeFrameCount": {
+                "options": [
+                    "MultiFrameSetOutputModeFrameCount_2Frames",
+                    "MultiFrameSetOutputModeFrameCount_4Frames"
+                ],
+                "value": "MultiFrameSetOutputModeFrameCount_2Frames",
+                "type": "Enumeration",
+                "tooltip": "Selects the number of frames in multi frame set output mode.",
+                "description": "Selects the number of frames in multi frame set output mode."
+            },
+            "MultiFrameSetOutputModeExposureTime0": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the exposure time for frame 0 of the frame set.",
+                "description": "Configures the exposure time for frame 0 of the frame set."
+            },
+            "MultiFrameSetOutputModeExposureTime1": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the exposure time for frame 1 of the frame set.",
+                "description": "Configures the exposure time for frame 1 of the frame set."
+            },
+            "MultiFrameSetOutputModeExposureTime2": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the exposure time for frame 2 of the frame set.",
+                "description": "Configures the exposure time for frame 2 of the frame set."
+            },
+            "MultiFrameSetOutputModeExposureTime3": {
+                "min": "ExposureTimeMin",
+                "max": "ExposureTimeMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the exposure time for frame 3 of the frame set.",
+                "description": "Configures the exposure time for frame 3 of the frame set."
+            },
+            "MultiFrameSetOutputModeCustomGain": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "Enables the sensor to use customizable gain values for the different frames of a frame set.",
+                "description": "Enables the sensor to use customizable gain values for the different frames of a frame set."
+            },
+            "MultiFrameSetOutputModeGain0": {
+                "min": "0",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the gain for frame 0 of the frame set.",
+                "description": "Configures the gain for frame 0 of the frame set."
+            },
+            "MultiFrameSetOutputModeGain1": {
+                "min": "0",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the gain for frame 1 of the frame set.",
+                "description": "Configures the gain for frame 1 of the frame set."
+            },
+            "MultiFrameSetOutputModeGain2": {
+                "min": "0",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the gain for frame 2 of the frame set.",
+                "description": "Configures the gain for frame 2 of the frame set."
+            },
+            "MultiFrameSetOutputModeGain3": {
+                "min": "0",
+                "max": "GainMax",
+                "value": "notReadable",
+                "type": "Float",
+                "tooltip": "Configures the gain for frame 3 of the frame set.",
+                "description": "Configures the gain for frame 3 of the frame set."
+            }
+        }
+    },
+    "AutoFunctionsROI": {
+        "source": "category",
+        "features": {
+            "AutoFunctionsROIEnable": {
+                "value": true,
+                "type": "Boolean",
+                "tooltip": "Enable the region of interest for auto functions.",
+                "description": "Enable the region of interest for auto functions."
+            },
+            "AutoFunctionsROIPreset": {
+                "options": [
+                    "AutoFunctionsROIPreset_Full",
+                    "AutoFunctionsROIPreset_Custom",
+                    "AutoFunctionsROIPreset_Center50Pct",
+                    "AutoFunctionsROIPreset_Center25Pct",
+                    "AutoFunctionsROIPreset_BottomHalf",
+                    "AutoFunctionsROIPreset_TopHalf"
+                ],
+                "value": "AutoFunctionsROIPreset_Center50Pct",
+                "type": "Enumeration",
+                "tooltip": "Select a predefined region of interest for auto functions.",
+                "description": "Select a predefined region of interest for auto functions."
+            },
+            "AutoFunctionsROILeft": {
+                "min": "0",
+                "max": "AutoFunctionsROILeftMax",
+                "representation": "int",
+                "value": 612,
+                "type": "Integer",
+                "tooltip": "Horizontal offset of the auto functions region of interest",
+                "description": "Horizontal offset of the auto functions region of interest."
+            },
+            "AutoFunctionsROITop": {
+                "min": "0",
+                "max": "AutoFunctionsROITopMax",
+                "representation": "int",
+                "value": 512,
+                "type": "Integer",
+                "tooltip": "Vertical offset of the auto functions region of interest",
+                "description": "Vertical offset of the auto functions region of interest."
+            },
+            "AutoFunctionsROIWidth": {
+                "min": "AutoFunctionsROISizeMin",
+                "max": "AutoFunctionsROIWidthMax",
+                "representation": "int",
+                "value": 1224,
+                "type": "Integer",
+                "tooltip": "Horizontal size of the auto functions region of interest",
+                "description": "Horizontal size of the auto functions region of interest."
+            },
+            "AutoFunctionsROIHeight": {
+                "min": "AutoFunctionsROISizeMin",
+                "max": "AutoFunctionsROIHeightMax",
+                "representation": "int",
+                "value": 1024,
+                "type": "Integer",
+                "tooltip": "Vertical size of the auto functions region of interest",
+                "description": "Vertical size of the auto functions region of interest."
+            }
+        }
+    },
+    "LUTControl": {
+        "source": "category",
+        "features": {
+            "LUTSelector": {
+                "options": [
+                    "Luminance",
+                    "Red",
+                    "Green",
+                    "Blue"
+                ],
+                "value": "Luminance",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Selects which LUT to control."
+            },
+            "LUTEnable": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": "Activates the LUT."
+            },
+            "LUTIndex": {
+                "min": "0",
+                "max": "256",
+                "representation": "Linear",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Control the index (offset) of the coefficient to access in the LUT."
+            },
+            "LUTValue": {
+                "min": "0",
+                "max": "65535",
+                "representation": "Linear",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "",
+                "description": "Returns or sets the Value at entry LUTIndex of the LUT."
+            }
+        }
+    },
+    "DigitalIO": {
+        "source": "category",
+        "features": {
+            "GPIO": {
+                "min": "0",
+                "max": "3",
+                "representation": "int",
+                "value": 2,
+                "type": "Integer",
+                "tooltip": "General-purpose input/output value (combined)",
+                "description": "General-purpose input/output value (combined)"
+            },
+            "GPIn": {
+                "min": "0",
+                "max": "1",
+                "representation": "int",
+                "value": 1,
+                "type": "Integer",
+                "tooltip": "Status of the digital input pin",
+                "description": "Status of the digital input pin."
+            },
+            "GPOut": {
+                "min": "0",
+                "max": "1",
+                "representation": "int",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "Status of the digital output pin",
+                "description": "Status of the digital output pin."
+            },
+            "StrobeEnable": {
+                "options": [
+                    "On",
+                    "Off"
+                ],
+                "value": "Off",
+                "type": "Enumeration",
+                "tooltip": "Enable exposure-synchronized output pulses",
+                "description": "Enable generation of exposure-synchronized output pulses"
+            },
+            "StrobePolarity": {
+                "options": [
+                    "ActiveHigh",
+                    "ActiveLow"
+                ],
+                "value": "ActiveLow",
+                "type": "Enumeration",
+                "tooltip": "Level of exposure-synchronized output pulses",
+                "description": "Select level of exposure-synchronized output pulses"
+            },
+            "StrobeOperation": {
+                "options": [
+                    "Exposure",
+                    "FixedDuration"
+                ],
+                "value": "Exposure",
+                "type": "Enumeration",
+                "tooltip": "Configures the mode of specifying the length of exposure-synchronized output pulses",
+                "description": "Configures the mode of specifying the length of exposure-synchronized output pulses"
+            },
+            "StrobeDuration": {
+                "min": "0",
+                "max": "32767",
+                "representation": "Linear",
+                "value": 100,
+                "type": "Integer",
+                "tooltip": "Specifies the fixed-duration pulse length.",
+                "description": "If StrobeOperation is FixedDuration, specifies the pulse length."
+            },
+            "StrobeDelay": {
+                "min": "0",
+                "max": "32767",
+                "representation": "Linear",
+                "value": 0,
+                "type": "Integer",
+                "tooltip": "The delay from start of exposure to the generated strobe pulse",
+                "description": "Configures the delay from start of exposure to the generated strobe pulse."
+            }
+        }
+    },
+    "ChunkDataControl": {
+        "source": "category",
+        "features": {
+            "ChunkModeActive": {
+                "value": false,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": "Activates the inclusion of Chunk data in the payload of the image."
+            },
+            "ChunkSelector": {
+                "options": [
+                    "Image",
+                    "ExposureTime",
+                    "Gain"
+                ],
+                "value": "Image",
+                "type": "Enumeration",
+                "tooltip": "Selects which Chunk to enable or control.",
+                "description": "Selects which Chunk to enable or control."
+            },
+            "ChunkEnable": {
+                "value": true,
+                "type": "Boolean",
+                "tooltip": "Enables the inclusion of the selected Chunk data in the payload of the image.",
+                "description": "Enables the inclusion of the selected Chunk data in the payload of the image."
+            }
+        }
+    },
+    "EventControl": {
+        "source": "category",
+        "features": {
+            "EventSelector": {
+                "options": [
+                    "ExposureEnd",
+                    "FrameTriggerMissed",
+                    "Line1RisingEdge",
+                    "Line1FallingEdge",
+                    "FocusMoveCompleted",
+                    "ZoomMoveCompleted",
+                    "Test"
+                ],
+                "value": "Test",
+                "type": "Enumeration",
+                "tooltip": "Sets the event notification to be enabled.",
+                "description": "Sets the event notification to be enabled. The notification can be enabled using the Event Notification parameter."
+            },
+            "EventNotification": {
+                "options": [
+                    "Off",
+                    "On"
+                ],
+                "value": "Off",
+                "type": "Enumeration",
+                "tooltip": "Enables event notifications for the currently selected event.",
+                "description": "Enables event notifications for the currently selected event. The event can selected using the Event Selector parameter."
+            }
+        }
+    },
+    "EventExposureEndData": {
+        "source": "category",
+        "features": {
+            "EventExposureEnd": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Exposure End event.",
+                "description": "Unique identifier of the Exposure End event. Use this parameter to get notified when the event occurs."
+            },
+            "EventExposureEndTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Exposure End event.",
+                "description": "Timestamp of the Exposure End event."
+            },
+            "EventExposureEndFrameID": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Frame ID of the Exposure End event.",
+                "description": "Frame ID of the Exposure End event."
+            }
+        }
+    },
+    "EventFrameTriggerMissedData": {
+        "source": "category",
+        "features": {
+            "EventFrameTriggerMissed": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Frame Trigger Missed event.",
+                "description": "Unique identifier of the Frame Trigger Missed event. Use this parameter to get notified when the event occurs."
+            },
+            "EventFrameTriggerMissedTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Frame Trigger Missed event.",
+                "description": "Timestamp of the Frame Trigger Missed event."
+            }
+        }
+    },
+    "EventLine1RisingEdgeData": {
+        "source": "category",
+        "features": {
+            "EventLine1RisingEdge": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Line1 Rising Edge event.",
+                "description": "Unique identifier of the Line1 Rising Edge event. Use this parameter to get notified when the event occurs."
+            },
+            "EventLine1RisingEdgeTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Line1 Rising Edge event.",
+                "description": "Timestamp of the Line1 Rising Edge event."
+            }
+        }
+    },
+    "EventLine1FallingEdgeData": {
+        "source": "category",
+        "features": {
+            "EventLine1FallingEdge": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Line1 Falling Edge event.",
+                "description": "Unique identifier of the Line1 Falling Edge event. Use this parameter to get notified when the event occurs."
+            },
+            "EventLine1FallingEdgeTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Line1 Falling Edge event.",
+                "description": "Timestamp of the Line1 Falling Edge event."
+            }
+        }
+    },
+    "EventFocusMoveCompletedData": {
+        "source": "category",
+        "features": {
+            "EventFocusMoveCompleted": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Focus Move Completed event.",
+                "description": "Unique identifier of the Focus Move Completed event. Use this parameter to get notified when the event occurs."
+            },
+            "EventFocusMoveCompletedTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Focus Move Completed event.",
+                "description": "Timestamp of the Focus Move Completed event."
+            },
+            "EventFocusMoveCompletedFocus": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Focus value of the Focus Move Completed event.",
+                "description": "Focus value of the Focus Move Completed event."
+            }
+        }
+    },
+    "EventZoomMoveCompletedData": {
+        "source": "category",
+        "features": {
+            "EventZoomMoveCompleted": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Zoom Move Completed event.",
+                "description": "Unique identifier of the Zoom Move Completed event. Use this parameter to get notified when the event occurs."
+            },
+            "EventZoomMoveCompletedTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the Zoom Move Completed event.",
+                "description": "Timestamp of the Zoom Move Completed event."
+            },
+            "EventZoomMoveCompletedZoom": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Zoom value of the Zoom Move Completed event.",
+                "description": "Zoom value of the Zoom Move Completed event."
+            }
+        }
+    },
+    "EventTestData": {
+        "source": "category",
+        "features": {
+            "EventTest": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Unique identifier of the Test event.",
+                "description": "Unique identifier of the Test event. Use this parameter to get notified when the event occurs."
+            },
+            "EventTestTimestamp": {
+                "min": null,
+                "max": null,
+                "representation": "int",
+                "value": "notReadable",
+                "type": "Integer",
+                "tooltip": "Timestamp of the test event.",
+                "description": "Timestamp of the test event."
+            }
+        }
+    },
+    "TestControl": {
+        "source": "category",
+        "features": {}
+    },
+    "UserSetControl": {
+        "source": "category",
+        "features": {
+            "UserSetSelector": {
+                "options": [
+                    "Default",
+                    "UserSet1",
+                    "UserSet2"
+                ],
+                "value": "Default",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Selects the feature User Set to load, save or configure."
+            },
+            "UserSetDefault": {
+                "options": [
+                    "Default",
+                    "UserSet1",
+                    "UserSet2"
+                ],
+                "value": "Default",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Selects the feature User Set to load and make active by default when the device is reset."
+            }
+        }
+    },
+    "PtpControl": {
+        "source": "category",
+        "features": {
+            "PtpEnable": {
+                "value": true,
+                "type": "Boolean",
+                "tooltip": "",
+                "description": "Enables the Precision Time Protocol (PTP)."
+            },
+            "PtpClockAccuracy": {
+                "options": [
+                    "PtpClockAccuracy_Within100us"
+                ],
+                "value": "PtpClockAccuracy_Within100us",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Indicates the expected accuracy of the device PTP clock when it is the grandmaster, or in the event it becomes the grandmaster."
+            },
+            "PtpStatus": {
+                "options": [
+                    "PtpStatus_Initializing",
+                    "PtpStatus_Faulty",
+                    "PtpStatus_Disabled",
+                    "PtpStatus_Listening",
+                    "PtpStatus_PreMaster",
+                    "PtpStatus_Master",
+                    "PtpStatus_Passive",
+                    "PtpStatus_Uncalibrated",
+                    "PtpStatus_Slave"
+                ],
+                "value": "PtpStatus_Slave",
+                "type": "Enumeration",
+                "tooltip": "",
+                "description": "Returns the current state of the PTP clock."
+            }
+        }
+    }
+}
