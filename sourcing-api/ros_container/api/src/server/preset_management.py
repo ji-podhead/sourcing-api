@@ -13,6 +13,7 @@ from utils.db.db_utils import (
     update_preset,
     delete_preset,
 )
+from utils.gigE.camera_manager import get_gigE_camera
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +129,26 @@ route2 = APIRoute("/presets/{device_identifier}", endpoint=create_preset_endpoin
 route3 = APIRoute("/presets/{device_identifier}", endpoint=get_presets_for_device_endpoint, methods=["GET"])
 route4 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=get_preset_endpoint, methods=["GET"])
 route5 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=update_preset_endpoint, methods=["PUT"])
+async def apply_preset_endpoint(device_identifier: str, preset_name: str):
+    """Applies a preset to a given device."""
+    preset_config = await get_preset(device_identifier, preset_name)
+    if not preset_config:
+        raise HTTPException(status_code=404, detail=f"Preset '{preset_name}' not found for device '{device_identifier}'.")
+
+    camera_node = get_gigE_camera(device_identifier)
+    if not camera_node:
+        raise HTTPException(status_code=404, detail=f"Camera '{device_identifier}' not found or not running.")
+
+    for group_name, features in preset_config.items():
+        for feature_name, feature_data in features.items():
+            value = feature_data.get("value")
+            await camera_node.set_feature(feature_name, value)
+
+    return {"status": "success", "message": f"Preset '{preset_name}' applied to device '{device_identifier}'."}
+
 route6 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=delete_preset_endpoint, methods=["DELETE"])
 route7 = APIRoute("/presets/load_from_yaml", endpoint=load_presets_from_yaml, methods=["POST"])
+route8 = APIRoute("/presets/{device_identifier}/{preset_name}/apply", endpoint=apply_preset_endpoint, methods=["POST"])
 
 routes.append(route1)
 routes.append(route2)
@@ -138,3 +157,4 @@ routes.append(route4)
 routes.append(route5)
 routes.append(route6)
 routes.append(route7)
+routes.append(route8)

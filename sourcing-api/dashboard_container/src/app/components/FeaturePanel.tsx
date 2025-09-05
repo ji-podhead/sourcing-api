@@ -1,27 +1,34 @@
+"use client";
 import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../redux/store';
+import { setSelectedFeatureGroup } from '../redux/dashboardSlice';
+import { handleFeatureChange } from '../redux/thunks';
 import { CameraFeatureGroup, CameraFeature } from '../types';
 
-interface FeaturePanelProps {
-  selectedCamera: any;
-  selectedFeatureGroup: string | null;
-  handleFeatureGroupSelect: (groupName: string) => void;
-  handleFeatureChange: (
-    cameraId: string,
-    featureGroupName: string,
-    featureName: string,
-    newValue: any
-  ) => void;
-}
+const FeaturePanel: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const { selectedCamera } = useSelector((state: RootState) => state.devices);
+  const { selectedFeatureGroup } = useSelector((state: RootState) => state.dashboard);
 
-const FeaturePanel: React.FC<FeaturePanelProps> = ({
-  selectedCamera,
-  selectedFeatureGroup,
-  handleFeatureGroupSelect,
-  handleFeatureChange,
-}) => {
   if (!selectedCamera?.features || selectedCamera.features.length === 0) {
     return <p>No features available for this camera.</p>;
   }
+
+  const handleFeatureChangeAction = (
+    featureName: string,
+    newValue: any
+  ) => {
+    if (selectedCamera && selectedFeatureGroup) {
+      dispatch(handleFeatureChange({
+        cameraId: selectedCamera.id,
+        protocol: selectedCamera.type,
+        featureGroupName: selectedFeatureGroup,
+        featureName,
+        newValue,
+      }));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -29,7 +36,7 @@ const FeaturePanel: React.FC<FeaturePanelProps> = ({
         {selectedCamera.features.map((group: CameraFeatureGroup) => (
           <button
             key={group.name}
-            onClick={() => handleFeatureGroupSelect(group.name)}
+            onClick={() => dispatch(setSelectedFeatureGroup(group.name))}
             className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${
               selectedFeatureGroup === group.name
                 ? 'bg-blue-600 text-white'
@@ -67,16 +74,7 @@ const FeaturePanel: React.FC<FeaturePanelProps> = ({
                 {feature.type === 'Enumeration' ? (
                   <select
                     value={feature.value}
-                    onChange={e =>
-                      selectedCamera &&
-                      selectedFeatureGroup &&
-                      handleFeatureChange(
-                        selectedCamera.identifier,
-                        selectedFeatureGroup,
-                        feature.name,
-                        e.target.value
-                      )
-                    }
+                    onChange={e => handleFeatureChangeAction(feature.name, e.target.value)}
                     className="w-full p-2 border rounded-md"
                     disabled={!feature.is_writable}
                   >
@@ -90,16 +88,7 @@ const FeaturePanel: React.FC<FeaturePanelProps> = ({
                   <input
                     type="checkbox"
                     checked={feature.value}
-                    onChange={e =>
-                      selectedCamera &&
-                      selectedFeatureGroup &&
-                      handleFeatureChange(
-                        selectedCamera.identifier,
-                        selectedFeatureGroup,
-                        feature.name,
-                        e.target.checked
-                      )
-                    }
+                    onChange={e => handleFeatureChangeAction(feature.name, e.target.checked)}
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     disabled={!feature.is_writable}
                   />
@@ -111,16 +100,7 @@ const FeaturePanel: React.FC<FeaturePanelProps> = ({
                         : 'text'
                     }
                     value={feature.value}
-                    onChange={e =>
-                      selectedCamera &&
-                      selectedFeatureGroup &&
-                      handleFeatureChange(
-                        selectedCamera.identifier,
-                        selectedFeatureGroup,
-                        feature.name,
-                        e.target.value
-                      )
-                    }
+                    onChange={e => handleFeatureChangeAction(feature.name, e.target.value)}
                     className="w-full p-2 border rounded-md"
                     placeholder={feature.type}
                     disabled={!feature.is_writable}

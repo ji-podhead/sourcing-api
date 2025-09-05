@@ -1,49 +1,25 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../redux/store';
+import { setEditingNotes } from '../redux/dashboardSlice';
+import { handleSaveNotes, handleSetPublishingPreset } from '../redux/thunks';
 import { CameraFeature, CameraFeatureGroup } from '../types';
 
-interface DeviceDetailsPanelProps {
-  selectedCamera: any;
-  editingNotes: string;
-  setEditingNotes: (notes: string) => void;
-  handleSaveNotes: () => void;
-  presets: any[];
-  handleSetPublishingPreset: (presetName: string) => void;
-}
+const DeviceDetailsPanel: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const { selectedCamera } = useSelector((state: RootState) => state.devices);
+  const { editingNotes, presets } = useSelector((state: RootState) => state.dashboard);
+  const {
+    deviceControl,
+    ptpControl,
+    imageFormatControl,
+    analogControl,
+    acquisitionControl,
+  } = useSelector((state: RootState) => state.camera);
 
-const DeviceDetailsPanel: React.FC<DeviceDetailsPanelProps> = ({
-  selectedCamera,
-  editingNotes,
-  setEditingNotes,
-  handleSaveNotes,
-  presets,
-  handleSetPublishingPreset,
-}) => {
-  const [deviceControl, setDeviceControl] = useState<any>({});
-  const [PtpControl, setPtpControl] = useState<any>({});
-  const [ImageFormatControl, setImageFormatControl] = useState<any>({});
-  const [AnalogControl, setAnalogControl] = useState<any>({});
-  const [AcquisitionControl, setAcquisitionControl] = useState<any>({});
-
-  useEffect(() => {
-    if (selectedCamera && selectedCamera.features) {
-      // Safely find feature groups and provide a default empty object if not found
-      setDeviceControl(selectedCamera.features.find(featureGroup => featureGroup.name === "DeviceControl") || {});
-      setPtpControl(selectedCamera.features.find(featureGroup => featureGroup.name === "PtpControl") || {});
-      setImageFormatControl(selectedCamera.features.find(featureGroup => featureGroup.name === "ImageFormatControl") || {});
-      setAnalogControl(selectedCamera.features.find(featureGroup => featureGroup.name === "AnalogControl") || {});
-      setAcquisitionControl(selectedCamera.features.find(featureGroup => featureGroup.name === "AcquisitionControl") || {});
-    } else {
-      // Reset to default empty objects if selectedCamera or its features are not available
-      setDeviceControl({});
-      setPtpControl({});
-      setImageFormatControl({});
-      setAnalogControl({});
-      setAcquisitionControl({});
-    }
-  }, [selectedCamera]);
-
-  const getFeatureValue = (group: CameraFeatureGroup, featureName: string) => {
-    if (group && group.features) {
+  const getFeatureValue = (group: CameraFeatureGroup | {}, featureName: string) => {
+    if ('features' in group && group.features) {
       const feature = group.features.find((f: CameraFeature) => f.name === featureName);
       return feature ? feature.value : 'N/A';
     }
@@ -63,41 +39,41 @@ const DeviceDetailsPanel: React.FC<DeviceDetailsPanelProps> = ({
         <h4 className="font-semibold mt-4">Device Control</h4>
         <p>Temperature: {getFeatureValue(deviceControl, 'DeviceTemperature')}</p>
         <h4 className="font-semibold mt-4">PTP Control</h4>
-        <p>PTP Status: {getFeatureValue(PtpControl, 'PtpStatus')}</p>
+        <p>PTP Status: {getFeatureValue(ptpControl, 'PtpStatus')}</p>
         <h4 className="font-semibold mt-4">Image Format Control</h4>
-        <p>Pixel Format: {getFeatureValue(ImageFormatControl, 'PixelFormat')}</p>
-        <p>Sensor Width: {getFeatureValue(ImageFormatControl, 'SensorWidth')}</p>
-        <p>Width: {getFeatureValue(ImageFormatControl, 'Width')}</p>
-        <p>Sensor Height: {getFeatureValue(ImageFormatControl, 'SensorHeight')}</p>
-        <p>Height: {getFeatureValue(ImageFormatControl, 'Height')}</p>
+        <p>Pixel Format: {getFeatureValue(imageFormatControl, 'PixelFormat')}</p>
+        <p>Sensor Width: {getFeatureValue(imageFormatControl, 'SensorWidth')}</p>
+        <p>Width: {getFeatureValue(imageFormatControl, 'Width')}</p>
+        <p>Sensor Height: {getFeatureValue(imageFormatControl, 'SensorHeight')}</p>
+        <p>Height: {getFeatureValue(imageFormatControl, 'Height')}</p>
         <h4 className="font-semibold mt-4">Analog Control</h4>
-        <p>Gain Auto: {getFeatureValue(AnalogControl, 'GainAuto')}</p>
-        <p>Gain Auto Lower Limit: {getFeatureValue(AnalogControl, 'GainAutoLowerLimit')}</p>
-        <p>Gain Auto Upper Limit: {getFeatureValue(AnalogControl, 'GainAutoUpperLimit')}</p>
-        <p>Gain: {getFeatureValue(AnalogControl, 'Gain')}</p>
-        <p>Gamma: {getFeatureValue(AnalogControl, 'Gamma')}</p>
-        <p>Black Level: {getFeatureValue(AnalogControl, 'BlackLevel')}</p>
+        <p>Gain Auto: {getFeatureValue(analogControl, 'GainAuto')}</p>
+        <p>Gain Auto Lower Limit: {getFeatureValue(analogControl, 'GainAutoLowerLimit')}</p>
+        <p>Gain Auto Upper Limit: {getFeatureValue(analogControl, 'GainAutoUpperLimit')}</p>
+        <p>Gain: {getFeatureValue(analogControl, 'Gain')}</p>
+        <p>Gamma: {getFeatureValue(analogControl, 'Gamma')}</p>
+        <p>Black Level: {getFeatureValue(analogControl, 'BlackLevel')}</p>
         <h4 className="font-semibold mt-4">Acquisition Control</h4>
-        <p>Exposure Auto: {getFeatureValue(AcquisitionControl, 'ExposureAuto')}</p>
-        <p>Acquisition Frame Rate: {getFeatureValue(AcquisitionControl, 'AcquisitionFrameRate')}</p>
-        <p>Acquisition Mode: {getFeatureValue(AcquisitionControl, 'AcquisitionMode')}</p>
-        <p>Exposure Auto Lower Limit: {getFeatureValue(AcquisitionControl, 'ExposureAutoLowerLimit')}</p>
-        <p>Exposure Auto Reference: {getFeatureValue(AcquisitionControl, 'ExposureAutoReference')}</p>
-        <p>Exposure Auto Upper Limit: {getFeatureValue(AcquisitionControl, 'ExposureAutoUpperLimit')}</p>
+        <p>Exposure Auto: {getFeatureValue(acquisitionControl, 'ExposureAuto')}</p>
+        <p>Acquisition Frame Rate: {getFeatureValue(acquisitionControl, 'AcquisitionFrameRate')}</p>
+        <p>Acquisition Mode: {getFeatureValue(acquisitionControl, 'AcquisitionMode')}</p>
+        <p>Exposure Auto Lower Limit: {getFeatureValue(acquisitionControl, 'ExposureAutoLowerLimit')}</p>
+        <p>Exposure Auto Reference: {getFeatureValue(acquisitionControl, 'ExposureAutoReference')}</p>
+        <p>Exposure Auto Upper Limit: {getFeatureValue(acquisitionControl, 'ExposureAutoUpperLimit')}</p>
         <h4 className="font-semibold mt-4">User Notes</h4>
         <textarea
           value={editingNotes}
-          onChange={e => setEditingNotes(e.target.value)}
+          onChange={e => dispatch(setEditingNotes(e.target.value))}
           className="w-full p-2 border rounded-md mt-1"
           rows={4}
           placeholder="Enter notes for this device..."
         />
-        <button onClick={handleSaveNotes} className="bg-blue-500 text-white p-2 rounded-md mt-2">Save Notes</button>
+        <button onClick={() => dispatch(handleSaveNotes({ cameraIdentifier: selectedCamera.identifier, notes: editingNotes }))} className="bg-blue-500 text-white p-2 rounded-md mt-2">Save Notes</button>
         <h4 className="font-semibold mt-4">Publishing Preset</h4>
         <div className="flex items-center space-x-2 mt-1">
           <select
             value={selectedCamera.publishing_preset || ''}
-            onChange={e => handleSetPublishingPreset(e.target.value)}
+            onChange={e => dispatch(handleSetPublishingPreset({ cameraIdentifier: selectedCamera.identifier, presetName: e.target.value }))}
             className="w-full p-2 border rounded-md"
           >
             <option value="">-- None --</option>

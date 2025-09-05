@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Wait for the database to be ready
+echo "Waiting for database..."
+while ! nc -z localhost 5432; do
+  sleep 1
+done
+echo "Database is ready."
+
 # Source the ROS setup script
 source /opt/ros/humble/setup.bash
 

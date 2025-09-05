@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Preset } from '../app';
+import { Preset, CameraFeature } from '../types';
 
 interface DashboardState {
   selectedFeatureGroup: string | null;
-  activeTab: 'features' | 'presets';
+  activeTab: 'features' | 'presets' | 'calibration';
   isSettingsOpen: boolean;
   editingNotes: string;
   presets: Preset[];
@@ -15,6 +15,8 @@ interface DashboardState {
   recordings: any[];
   message: string;
   showMessage: boolean;
+  newCameraId: string;
+  newCameraProtocol: string;
 }
 
 const initialState: DashboardState = {
@@ -31,6 +33,8 @@ const initialState: DashboardState = {
   recordings: [],
   message: '',
   showMessage: true,
+  newCameraId: '',
+  newCameraProtocol: 'gigE',
 };
 
 const dashboardSlice = createSlice({
@@ -40,7 +44,7 @@ const dashboardSlice = createSlice({
     setSelectedFeatureGroup(state, action: PayloadAction<string | null>) {
       state.selectedFeatureGroup = action.payload;
     },
-    setActiveTab(state, action: PayloadAction<'features' | 'presets'>) {
+    setActiveTab(state, action: PayloadAction<'features' | 'presets' | 'calibration'>) {
       state.activeTab = action.payload;
     },
     setIsSettingsOpen(state, action: PayloadAction<boolean>) {
@@ -76,6 +80,53 @@ const dashboardSlice = createSlice({
     setShowMessage(state, action: PayloadAction<boolean>) {
       state.showMessage = action.payload;
     },
+    setPresetFormName(state, action: PayloadAction<string>) {
+      state.presetForm.name = action.payload;
+    },
+    togglePresetFeature(state, action: PayloadAction<{ feature: CameraFeature; groupName: string; isChecked: boolean }>) {
+      const { feature, groupName, isChecked } = action.payload;
+      const newConfig = { ...state.presetForm.configuration };
+      if (isChecked) {
+        if (!newConfig[groupName]) {
+          newConfig[groupName] = {};
+        }
+        newConfig[groupName][feature.name] = {
+          type: feature.type,
+          value: feature.value,
+        };
+      } else {
+        if (newConfig[groupName]) {
+          delete newConfig[groupName][feature.name];
+          if (Object.keys(newConfig[groupName]).length === 0) {
+            delete newConfig[groupName];
+          }
+        }
+      }
+      state.presetForm.configuration = newConfig;
+    },
+    setPresetValue(state, action: PayloadAction<{ groupName: string; featureName: string; newValue: any }>) {
+      const { groupName, featureName, newValue } = action.payload;
+      if (state.presetForm.configuration[groupName] && state.presetForm.configuration[groupName][featureName]) {
+        state.presetForm.configuration[groupName][featureName].value = newValue;
+      }
+    },
+    cancelPresetEdit(state) {
+      state.selectedPresetForEditing = null;
+      state.presetForm = { name: '', configuration: {} };
+      state.presetFormError = '';
+    },
+    loadPresetForEditing(state, action: PayloadAction<Preset>) {
+      state.selectedPresetForEditing = action.payload;
+      state.presetForm = { name: action.payload.name, configuration: { ...action.payload.configuration } };
+      state.presetFormError = '';
+      state.activeTab = 'presets';
+    },
+    setNewCameraId(state, action: PayloadAction<string>) {
+      state.newCameraId = action.payload;
+    },
+    setNewCameraProtocol(state, action: PayloadAction<string>) {
+      state.newCameraProtocol = action.payload;
+    },
   },
 });
 
@@ -93,5 +144,12 @@ export const {
   setRecordings,
   setMessage,
   setShowMessage,
+  setPresetFormName,
+  togglePresetFeature,
+  setPresetValue,
+  cancelPresetEdit,
+  loadPresetForEditing,
+  setNewCameraId,
+  setNewCameraProtocol,
 } = dashboardSlice.actions;
 export default dashboardSlice.reducer;
