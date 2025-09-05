@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../redux/store';
-import { setIsSettingsOpen, setRefreshInterval } from '../../redux/dashboardSlice';
+import { RootState } from '../redux/store';
+import { setIsSettingsOpen, setRefreshInterval } from '../redux/dashboardSlice';
 
 const Settings = () => {
   const dispatch = useDispatch();

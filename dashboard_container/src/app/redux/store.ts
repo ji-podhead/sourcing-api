@@ -1,11 +1,15 @@
 import { configureStore } from '@reduxjs/toolkit';
 import devicesReducer from './devicesSlice';
 import dashboardReducer from './dashboardSlice';
+import cameraReducer from './cameraSlice';
+import logsReducer from './logSlice'; // Import from the correct file
 
 export const store = configureStore({
   reducer: {
     devices: devicesReducer,
     dashboard: dashboardReducer,
+    camera: cameraReducer,
+    logs: logsReducer, // Use the imported logsReducer
   },
 });
 

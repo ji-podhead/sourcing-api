@@ -1,44 +1,40 @@
+"use client";
 import React from 'react';
-
-interface PresetsPanelProps {
-  selectedCamera: any;
-  presets: any[];
-  presetForm: any;
-  presetFormError: string;
-  selectedPresetForEditing: any;
-  activeTab: string;
-  handleCreatePreset: () => void;
-  handleUpdatePreset: () => void;
-  handleDeletePreset: (presetName: string) => void;
-  loadPresetForEditing: (preset: any) => void;
-  handleCancelPresetEdit: () => void;
-  handlePresetValueChange: (groupName: string, featureName: string, newValue: any) => void;
-  handleTogglePresetFeature: (feature: any, groupName: string, isChecked: boolean) => void;
-  dispatch: any;
-  setPresetForm: (form: any) => void;
-  setSelectedPresetForEditing: (preset: any) => void;
-  setActiveTab: (tab: string) => void;
-}
-
-const PresetsPanel: React.FC<PresetsPanelProps> = ({
-  selectedCamera,
-  presets,
-  presetForm,
-  presetFormError,
-  selectedPresetForEditing,
-  activeTab,
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../redux/store';
+import {
+  setPresetFormName,
+  togglePresetFeature,
+  setPresetValue,
+  cancelPresetEdit,
+  loadPresetForEditing,
+  setActiveTab,
+  setSelectedPresetForEditing,
+  setPresetForm,
+} from '../redux/dashboardSlice';
+import {
   handleCreatePreset,
   handleUpdatePreset,
   handleDeletePreset,
-  loadPresetForEditing,
-  handleCancelPresetEdit,
-  handlePresetValueChange,
-  handleTogglePresetFeature,
-  dispatch,
-  setPresetForm,
-  setSelectedPresetForEditing,
-  setActiveTab,
-}) => {
+} from '../redux/thunks';
+
+const PresetsPanel: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const {
+    selectedCamera,
+  } = useSelector((state: RootState) => state.devices);
+  const {
+    presets,
+    presetForm,
+    presetFormError,
+    selectedPresetForEditing,
+    activeTab,
+  } = useSelector((state: RootState) => state.dashboard);
+
+  if (!selectedCamera) {
+    return <p>Select a camera to manage presets.</p>;
+  }
+
   return (
     <>
       <div className="mb-4 flex justify-between items-center">
@@ -46,9 +42,9 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
         <div>
           <button
             onClick={() => {
-              setPresetForm({ name: '', configuration: {} });
-              setSelectedPresetForEditing(null);
-              setActiveTab('presets');
+              dispatch(setPresetForm({ name: '', configuration: {} }));
+              dispatch(setSelectedPresetForEditing(null));
+              dispatch(setActiveTab('presets'));
             }}
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
@@ -61,7 +57,6 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
         <p className="text-red-500 mb-4">{presetFormError}</p>
       )}
 
-      {/* Preset Form for Creating/Editing */}
       {(!selectedPresetForEditing || activeTab === 'presets') && (
         <div className="border p-4 rounded-md mb-4 bg-gray-50">
           <h5 className="text-lg font-semibold mb-3">{selectedPresetForEditing ? 'Edit Preset' : 'Create New Preset'}</h5>
@@ -72,13 +67,12 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
                 type="text"
                 id="presetName"
                 value={presetForm.name}
-                onChange={e => dispatch(setPresetForm({ ...presetForm, name: e.target.value }))}
+                onChange={e => dispatch(setPresetFormName(e.target.value))}
                 className="mt-1 p-2 w-full border rounded-md"
                 placeholder="Enter preset name"
               />
             </div>
 
-            {/* Feature Selection for Preset */}
             <div className="space-y-2">
               <h4 className="text-md font-semibold">Features</h4>
               <div className="max-h-60 overflow-y-auto border p-2 rounded-md">
@@ -98,7 +92,7 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
                           id={`preset-feature-${feature.name}`}
                           checked={!!presetForm.configuration[group.name]?.[feature.name]}
                           disabled={!feature.is_writable}
-                          onChange={e => handleTogglePresetFeature(feature, group.name, e.target.checked)}
+                          onChange={e => dispatch(togglePresetFeature({ feature, groupName: group.name, isChecked: e.target.checked }))}
                         />
                       </div>
                     ))}
@@ -107,7 +101,6 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
               </div>
             </div>
 
-            {/* Feature Value Editing Section */}
             {Object.keys(presetForm.configuration).length > 0 && (
               <div className="mt-4 pt-4 border-t">
                 <h4 className="text-md font-semibold">Preset Values</h4>
@@ -125,7 +118,7 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
                           {feature.type === "Enumeration" ? (
                             <select
                               value={presetFeature.value}
-                              onChange={e => handlePresetValueChange(groupName, featureName, e.target.value)}
+                              onChange={e => dispatch(setPresetValue({ groupName, featureName, newValue: e.target.value }))}
                               className="w-full p-2 border rounded-md mt-1"
                             >
                               {feature.options?.map((option: any) => (
@@ -136,14 +129,14 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
                             <input
                               type="checkbox"
                               checked={presetFeature.value}
-                              onChange={e => handlePresetValueChange(groupName, featureName, e.target.checked)}
+                              onChange={e => dispatch(setPresetValue({ groupName, featureName, newValue: e.target.checked }))}
                               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                             />
                           ) : (
                             <input
                               type={feature.type === "Integer" || feature.type === "Float" ? "number" : "text"}
                               value={presetFeature.value}
-                              onChange={e => handlePresetValueChange(groupName, featureName, e.target.value)}
+                              onChange={e => dispatch(setPresetValue({ groupName, featureName, newValue: e.target.value }))}
                               className="w-full p-2 border rounded-md mt-1"
                               min={feature.min}
                               max={feature.max}
@@ -159,13 +152,19 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
           </div>
           <div className="flex space-x-4 mt-4">
             <button
-              onClick={selectedPresetForEditing ? handleUpdatePreset : handleCreatePreset}
+              onClick={() => {
+                if (selectedPresetForEditing) {
+                  dispatch(handleUpdatePreset({ deviceIdentifier: selectedCamera.identifier, presetName: selectedPresetForEditing.name, presetForm }));
+                } else {
+                  dispatch(handleCreatePreset({ deviceIdentifier: selectedCamera.identifier, presetForm }));
+                }
+              }}
               className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-200 ${presetFormError ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               {selectedPresetForEditing ? 'Update Preset' : 'Create Preset'}
             </button>
             <button
-              onClick={handleCancelPresetEdit}
+              onClick={() => dispatch(cancelPresetEdit())}
               className="px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-200 bg-gray-600 hover:bg-gray-700"
             >
               Cancel
@@ -174,7 +173,6 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
         </div>
       )}
 
-      {/* List of Existing Presets */}
       <div className="border p-4 rounded-md bg-gray-50">
         <h4 className="text-lg font-semibold mb-3">Existing Presets</h4>
         {presets.length === 0 ? (
@@ -186,14 +184,14 @@ const PresetsPanel: React.FC<PresetsPanelProps> = ({
                 <span>{preset.name}{preset.name === "Default" && <span className="text-xs text-gray-500 ml-2">(Read-only)</span>}</span>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => loadPresetForEditing(preset)}
+                    onClick={() => dispatch(loadPresetForEditing(preset))}
                     disabled={preset.name === "Default"}
                     className={`font-bold py-1 px-3 rounded text-sm text-white ${preset.name === "Default" ? "bg-gray-400 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-700"}`}
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDeletePreset(preset.name)}
+                    onClick={() => dispatch(handleDeletePreset({ deviceIdentifier: selectedCamera.identifier, presetName: preset.name }))}
                     disabled={preset.name === "Default"}
                     className={`font-bold py-1 px-3 rounded text-sm text-white ${preset.name === "Default" ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-700"}`}
                   >

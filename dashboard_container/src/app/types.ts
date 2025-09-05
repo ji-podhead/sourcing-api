@@ -1,5 +1,4 @@
-// Shared types for dashboard and device components
-
+'use client'
 export interface DeviceStatus {
   id: string;
   identifier: string;

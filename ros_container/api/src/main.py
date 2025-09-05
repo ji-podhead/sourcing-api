@@ -67,6 +67,15 @@ for route in server.configuration_management.routes:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# --- CORS Configuration ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Allow frontend origins
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Explicitly allow common methods and OPTIONS for preflight requests
+    allow_headers=["*"],
+)
+
 # TODO: Add endpoints for streaming (more complex, requires WebRTC or similar)x
 
 # TODO: Implement GMSL2 camera initialization and feature handling in camera_manager.py
