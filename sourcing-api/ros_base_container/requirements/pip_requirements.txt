@@ -23,3 +23,5 @@ xmltodict
 psycopg2-binary==2.9.1
 setuptools
 wheel
+rosros
+roslibpy

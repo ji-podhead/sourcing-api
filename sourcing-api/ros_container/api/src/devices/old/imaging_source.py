@@ -10,20 +10,20 @@ os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time}: [{name}] [{severity}]\t{m
 
 
 def generate_launch_description():
-    # Correctly reference the config file from the mounted /home/developer/config directory
-    params_file = '/home/developer/config/imaging_source.yaml'
+    # Correctly reference the config file from the mounted /home/sourcingapi/config directory
+    params_file = '/home/sourcingapi/config/imaging_source.yaml'
 
     with open(params_file, 'r') as f:
         parameters = yaml.safe_load(f)
 
     # Override 'camera_info_urls' to use the correct absolute path
     # Assuming camera_info_urls is relative to the config directory
-    camera_info_path = os.path.join('/home/developer/config', parameters['camera_info_urls'])
+    camera_info_path = os.path.join('/home/sourcingapi/config', parameters['camera_info_urls'])
     parameters['camera_info_urls'] = [camera_info_path]
 
     # override 'dynamic_parameters_yaml_url' to use the correct absolute path
     # Assuming dynamic_parameters_yaml_url is relative to the config directory
-    dynamic_params_path = os.path.join('/home/developer/config', parameters['dynamic_parameters_yaml_url'])
+    dynamic_params_path = os.path.join('/home/sourcingapi/config', parameters['dynamic_parameters_yaml_url'])
     parameters['dynamic_parameters_yaml_url'] = dynamic_params_path
 
     example_package_node = Node(

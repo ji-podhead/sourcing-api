@@ -1,0 +1,5 @@
+AcquisitionControl:
+  AcquisitionMode: Continuous
+ImageFormatControl:
+  PixelFormat: Mono8
+guid: null

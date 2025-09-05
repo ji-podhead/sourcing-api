@@ -41,7 +41,8 @@ RUN pip install uvicorn[standard]
     
 RUN apt install -y ros-humble-foxglove-bridge
 RUN pip install numpy==1.26.4
-RUN pip install xmltodict
+RUN pip install xmltodict 
+RUN pip install psycopg2-binary
   
 WORKDIR /home/$USER
 

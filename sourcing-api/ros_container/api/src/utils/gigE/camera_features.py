@@ -33,7 +33,7 @@ DEVICE_GAIN_LEVELS = ['x1_0', 'x1_2', 'x1_5', 'x2_0', 'x3_0', 'x6_0']
 TARGET_PIXEL_FORMAT = "Mono16"
 SETTINGS_JSON_FILE = "camera_settings.json"
 
-class XenicsInteractiveTool:
+class GigEInteractiveTool:
     def __init__(self, verbose=False):
         self.camera = None
         self.stream = None
@@ -90,46 +90,54 @@ class XenicsInteractiveTool:
                 elif feature_xml_data.get("Max") is not None:
                     max=feature_xml_data.get("Max", "notDefined")
                 
+                access_mode = feature_xml_data.get("AccessMode", "NA")
                 value = "notReadable"
                 
-                if feature_type == "Boolean":
-                    try:
-                        value = device.get_boolean_feature_value(feature_name) if device.get_boolean_feature_value(feature_name) is not None else "notReadable"
-                    except Exception as e:
-                        print(f"Warning: Could not get value for Boolean feature '{feature_name}' in '{group_or_category_name}': {e}")
-                        value = "notReadable"
-                elif feature_type == "Enumeration":
+                # Enum options should be parsed regardless of read access
+                if feature_type == "Enumeration":
                     options = []
                     enum_entries = feature_xml_data.get("EnumEntry", [])
                     if not isinstance(enum_entries, list):
                         enum_entries = [enum_entries]
                     for option in enum_entries:
                         options.append(option.get("@Name"))
-                    try:
-                        value = device.get_string_feature_value(feature_name) if device.get_string_feature_value(feature_name) is not None else "notReadable"
-                    except Exception as e:
-                        print(f"Warning: Could not get value for Enumeration feature '{feature_name}' in '{group_or_category_name}': {e}")
-                        value = "notReadable"
                     details["options"] = options
-                elif feature_type == "Integer":
-                    representation = feature_xml_data.get("Representation", "int")
-                    try:
-                        value = device.get_integer_feature_value(feature_name) if device.get_integer_feature_value(feature_name) is not None else "notReadable"
-                    except Exception as e:
-                        print(f"Warning: Could not get value for Integer feature '{feature_name}' in '{group_or_category_name}': {e}")
-                        value = "notReadable"
-                    details["min"] = min
-                    details["max"] = max
-                    details["representation"] = representation
-                elif feature_type == "Float":
-                    details["min"] = min
-                    details["max"] = max
-                elif feature_type == "String":
-                    try:
-                        value = device.get_string_feature_value(feature_name) if device.get_string_feature_value(feature_name) is not None else "notReadable"
-                    except Exception as e:
-                        print(f"Warning: Could not get value for String feature '{feature_name}' in '{group_or_category_name}': {e}")
-                        value = "notReadable"
+
+                if access_mode in ["RO", "RW", "NA"]:
+                    if feature_type == "Boolean":
+                        try:
+                            value = device.get_boolean_feature_value(feature_name) if device.get_boolean_feature_value(feature_name) is not None else "notReadable"
+                        except Exception as e:
+                            print(f"Warning: Could not get value for Boolean feature '{feature_name}' in '{group_or_category_name}': {e}")
+                            value = "notReadable"
+                    elif feature_type == "Enumeration":
+                        try:
+                            value = device.get_string_feature_value(feature_name) if device.get_string_feature_value(feature_name) is not None else "notReadable"
+                        except Exception as e:
+                            print(f"Warning: Could not get value for Enumeration feature '{feature_name}' in '{group_or_category_name}': {e}")
+                            value = "notReadable"
+                    elif feature_type == "Integer":
+                        representation = feature_xml_data.get("Representation", "int")
+                        try:
+                            value = device.get_integer_feature_value(feature_name) if device.get_integer_feature_value(feature_name) is not None else "notReadable"
+                        except Exception as e:
+                            print(f"Warning: Could not get value for Integer feature '{feature_name}' in '{group_or_category_name}': {e}")
+                            value = "notReadable"
+                        details["min"] = min
+                        details["max"] = max
+                        details["representation"] = representation
+                    elif feature_type == "Float":
+                        details["min"] = min
+                        details["max"] = max
+                    elif feature_type == "String":
+                        try:
+                            value = device.get_string_feature_value(feature_name) if device.get_string_feature_value(feature_name) is not None else "notReadable"
+                        except Exception as e:
+                            print(f"Warning: Could not get value for String feature '{feature_name}' in '{group_or_category_name}': {e}")
+                            value = "notReadable"
+                else:
+                    # If not readable, we keep the value as "notReadable"
+                    print(f"Info: Feature '{feature_name}' is not readable (AccessMode: {access_mode}). Skipping read.")
                 
                 details.update({
                     "value": value,

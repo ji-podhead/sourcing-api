@@ -126,7 +126,7 @@ class XenicsInteractiveTool:
                             description=integer.get("Description", tooltip)
                             value=0
                             representation="int"
-                            if(integer.get("Representation", None)!=None and integer.get("Representation") is "HexNumber"):
+                            if(integer.get("Representation", None)!=None and integer.get("Representation") == "HexNumber"):
                                 value=device.get_string_feature_value(int_name) if device.get_string_feature_value(int_name) != None else "notReadable"
                                 print(f"HexNumber: {int_name} = {value}")
                                 representation="hex"

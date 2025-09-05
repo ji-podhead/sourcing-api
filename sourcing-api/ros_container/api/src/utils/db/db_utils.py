@@ -5,7 +5,7 @@ import os
 import json
 import psycopg2
 import logging
-from utils.gigE.camera_features import XenicsInteractiveTool
+from utils.gigE.camera_features import GigEInteractiveTool
 gi.require_version('Aravis', '0.8')
 from gi.repository import Aravis
 
@@ -94,6 +94,19 @@ def update_gigE_feature_in_db(conn, feature_name, group_name, new_value):
         logger.error(f"Error updating feature '{feature_name}' in group '{group_name}': {e}")
         conn.rollback()
 
+def update_feature_writability(conn, feature_name, group_name, is_writable):
+    """Updates a specific feature's writability in the database."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE features
+                SET is_writable = %s
+                WHERE name = %s AND group_id = (SELECT id FROM feature_groups WHERE name = %s);
+            """, (is_writable, feature_name, group_name))
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Error updating writability for feature '{feature_name}' in group '{group_name}': {e}")
+        conn.rollback()
 
 async def create_gigE_camera(camera_identifier: str, details: dict):
     """Creates a new camera entry and populates its features in the database."""
@@ -178,22 +191,47 @@ async def create_gigE_camera(camera_identifier: str, details: dict):
                             else:
                                 value_str = str(value)
 
+                            options = feature_details.get("options")
+                            options_str = json.dumps(options) if options else None
+                            min_val = feature_details.get("min")
+                            max_val = feature_details.get("max")
                             # Insert or update the feature in the database
                             cur.execute("""
-                                INSERT INTO features (name, type, value, tooltip, description, group_id)
-                                VALUES (%s, %s, %s, %s, %s, %s)
+                                INSERT INTO features (name, type, value, tooltip, description, group_id, options, min, max)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (name, group_id) DO UPDATE SET
                                     type = EXCLUDED.type,
                                     value = EXCLUDED.value,
                                     tooltip = EXCLUDED.tooltip,
-                                    description = EXCLUDED.description;
-                            """, (feature_name, feature_type, value_str, tooltip, description, group_id))
+                                    description = EXCLUDED.description,
+                                    options = EXCLUDED.options,
+                                    min = EXCLUDED.min,
+                                    max = EXCLUDED.max;
+                            """, (feature_name, feature_type, value_str, tooltip, description, group_id, options_str, min_val, max_val))
                         except Exception as feature_e:
                             logger.error(f"Error processing feature '{feature_name}' in group '{group_name}': {feature_e}")
                             conn.rollback() # Rollback this specific feature's transaction
                         else:
                             conn.commit() # Commit after each successful feature insertion
                     # --- FIX END ---
+        
+        # After initializing all features, create the default preset
+        logger.info(f"Creating 'Default' preset for camera '{camera_id}'...")
+        default_configuration = {}
+        for group_name, group_details in feature_data.items():
+            default_configuration[group_name] = {}
+            if "features" in group_details:
+                for feature_name, feature_details_full in group_details["features"].items():
+                    default_configuration[group_name][feature_name] = {
+                        "type": feature_details_full.get("type"),
+                        "value": feature_details_full.get("value")
+                    }
+        
+        if create_preset(camera_id, "Default", default_configuration):
+            logger.info(f"Successfully created 'Default' preset for camera '{camera_id}'.")
+        else:
+            logger.error(f"Failed to create 'Default' preset for camera '{camera_id}'.")
+
         logger.info(f"Feature initialization for camera '{camera_id}' completed.")
     except Exception as e:
         logger.error(f"An unexpected error occurred during camera creation/initialization: {e}")
@@ -234,7 +272,7 @@ async def get_gigE_camera(camera_identifier: str):
 
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, identifier, type, config FROM cameras WHERE identifier = %s;", (camera_identifier,))
+            cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE identifier = %s;", (camera_identifier,))
             camera_row = cur.fetchone()
 
             if not camera_row:
@@ -246,6 +284,8 @@ async def get_gigE_camera(camera_identifier: str):
                 "identifier": camera_row[1],
                 "type": camera_row[2],
                 "config": camera_row[3],
+                "user_notes": camera_row[4],
+                "publishing_preset": camera_row[5],
                 "status": "stopped",  # Default status, frontend will update dynamically
                 "features": []
             }
@@ -261,7 +301,8 @@ async def get_gigE_camera(camera_identifier: str):
                     f.min,
                     f.max,
                     f.options,
-                    f.representation
+                    f.representation,
+                    f.is_writable
                 FROM
                     feature_groups fg
                 JOIN
@@ -273,7 +314,7 @@ async def get_gigE_camera(camera_identifier: str):
 
             feature_groups_dict = {}
             for row in feature_rows:
-                group_name, feature_name, description, f_type, value, min_val, max_val, options_str, representation = row
+                group_name, feature_name, description, f_type, value, min_val, max_val, options_str, representation, is_writable = row
                 
                 if group_name not in feature_groups_dict:
                     feature_groups_dict[group_name] = {
@@ -289,7 +330,8 @@ async def get_gigE_camera(camera_identifier: str):
                     "min": min_val,
                     "max": max_val,
                     "options": options,
-                    "representation": representation
+                    "representation": representation,
+                    "is_writable": is_writable
                 }
                 feature_groups_dict[group_name]["features"].append(feature_details)
             camera_data["features"] = list(feature_groups_dict.values())
@@ -298,6 +340,42 @@ async def get_gigE_camera(camera_identifier: str):
     except Exception as e:
         logger.error(f"Error fetching camera '{camera_identifier}' with features: {e}")
         return None
+    finally:
+        if conn:
+            conn.close()
+
+def update_camera_notes(identifier: str, notes: str) -> bool:
+    """Updates the user notes for a specific camera."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE cameras SET user_notes = %s WHERE identifier = %s;", (notes, identifier))
+            conn.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Error updating notes for camera '{identifier}': {e}")
+        conn.rollback()
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def update_camera_publishing_preset(identifier: str, preset_name: str) -> bool:
+    """Updates the publishing preset for a specific camera."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE cameras SET publishing_preset = %s WHERE identifier = %s;", (preset_name, identifier))
+            conn.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Error updating publishing preset for camera '{identifier}': {e}")
+        conn.rollback()
+        return False
     finally:
         if conn:
             conn.close()
@@ -343,8 +421,8 @@ async def get_preset(device_identifier: str, name: str):
             )
             result = cur.fetchone()
             if result:
-                # Return configuration as a Python dictionary
-                return json.loads(result[0])
+                # The configuration is already a dict, no need to parse
+                return result[0]
             else:
                 logger.warning(f"Preset '{name}' not found for device '{device_identifier}'.")
                 return None
@@ -370,10 +448,10 @@ async def get_presets_for_device(device_identifier: str) -> list:
             presets = []
             rows = cur.fetchall()
             for row in rows:
-                preset_name, config_json = row
+                preset_name, configuration = row
                 presets.append({
                     "name": preset_name,
-                    "configuration": json.loads(config_json)
+                    "configuration": configuration
                 })
             logger.info(f"Retrieved {len(presets)} presets for device '{device_identifier}'.")
             return presets

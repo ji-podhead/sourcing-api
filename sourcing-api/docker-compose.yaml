@@ -28,17 +28,17 @@ services:
       ROS_LOCALHOST_ONLY: 0
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       ROS_DOMAIN_ID: 0
-      USER: developer
+      USER: sourcingapi
       USER_ID: 1010
       GROUP_ID: 1000
       ROS_MASTER_URI: http://localhost:11311
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ./config:/home/developer/config # Mount config files
-      - ./ros_container/api:/home/developer/api # Mount scripts
-      - ./data:/home/developer/data # For recordings
-      - ./ros_container/create_user.sh:/home/developer/create_user.sh # Mount user creation script
-      - ./ros_container/start_services.sh:/home/developer/start_services.sh
+      - ./config:/home/sourcingapi/config # Mount config files
+      - ./ros_container/api:/home/sourcingapi/ros2_ws/src/api # Mount scripts
+      - ./data:/home/sourcingapi/data # For recordings
+      - ./ros_container/create_user.sh:/home/sourcingapi/create_user.sh # Mount user creation script
+      - ./ros_container/start_services.sh:/home/sourcingapi/start_services.sh
     ports:
       - "8000:8000" # FastAPI port
       - "9090:9090" # ROS2 WebSocket port
@@ -46,9 +46,9 @@ services:
     depends_on:
       - roscore
       # Sagt diesem Container, wo der ROS 1 Master ist
-    working_dir: /home/developer
+    working_dir: /home/sourcingapi
     # Change the entrypoint to execute the new script
-    entrypoint: ["/bin/bash", "-c", "./create_user.sh && exec su - developer -c './start_services.sh'"]
+    entrypoint: ["/bin/bash", "-c", "./create_user.sh && exec su - sourcingapi -c './start_services.sh'"]
 
   dashboard_container:
     image: node:20
@@ -64,7 +64,7 @@ services:
     volumes:
       - ./dashboard_container/:/app/
 
-    entrypoint: ["/bin/bash", "-c", "cd /app && npm install && npm install --save @xterm/addon-fit && npm run dev"] 
+    entrypoint: ["/bin/bash", "-c", "cd /app && npm install && npm run dev"] 
 
 
 

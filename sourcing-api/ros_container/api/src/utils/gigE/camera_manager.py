@@ -7,8 +7,8 @@ import json
 import ast
 import psycopg2
 import logging
-from utils.gigE.camera_features import XenicsInteractiveTool
-from utils.db.db_utils import get_all_gigE_cam_ids, get_gigE_camera, get_db_connection, gigE_camera_exists, create_gigE_camera, get_gigE_features_from_db, update_gigE_feature_in_db
+from utils.gigE.camera_features import GigEInteractiveTool
+from utils.db.db_utils import get_all_gigE_cam_ids, get_gigE_camera, get_db_connection, gigE_camera_exists, create_gigE_camera, get_gigE_features_from_db, update_gigE_feature_in_db, update_feature_writability
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ async def initialize_camera_data(camera_id=None, camera_protocol=None):
                 update_camera_features(camera_id)
             else:
                 logger.info("Camera features not initialized. Processing cameras...")
-                cam= XenicsInteractiveTool()
+                cam= GigEInteractiveTool()
                 await cam.initialize(camera_id)
                 await create_gigE_camera(camera_id,cam)
                 logger.info("successfully created cam, updating values")
@@ -83,7 +83,7 @@ def update_camera_features(camera_identifier="auto"):
             logger.error("Cannot update features: Database connection failed.")
             return
         features_to_update = get_gigE_features_from_db(conn)
-        logger.info(f"fetched features from db: {features_to_update}")
+        #logger.info(f"fetched features from db: {features_to_update}")
         if not features_to_update:
             logger.warning("No features found in the database to update.")
             return
@@ -111,6 +111,30 @@ def update_camera_features(camera_identifier="auto"):
                 if current_value is not None:
                     update_gigE_feature_in_db(conn, feature_name, group_name, str(current_value))
                     updated_count += 1
+
+                    # Test for writability
+                    is_writable = False
+                    try:
+                        if feature_type == "String":
+                            device.set_string_feature_value(feature_name, current_value)
+                            is_writable = True
+                        elif feature_type == "Boolean":
+                            device.set_boolean_feature_value(feature_name, current_value)
+                            is_writable = True
+                        elif feature_type == "Integer":
+                            device.set_integer_feature_value(feature_name, current_value)
+                            is_writable = True
+                        elif feature_type == "Float":
+                            device.set_float_feature_value(feature_name, current_value)
+                            is_writable = True
+                        elif feature_type == "Enumeration":
+                            device.set_string_feature_value(feature_name, current_value)
+                            is_writable = True
+                    except Exception:
+                        is_writable = False
+                    
+                    update_feature_writability(conn, feature_name, group_name, is_writable)
+
                 else:
                     logger.warning(f"Feature '{feature_name}' (Type: {feature_type}) is not readable from the camera.")
 

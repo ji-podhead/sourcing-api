@@ -7,7 +7,8 @@ export const metadata: Metadata = {
 };
 
 import Taskbar from "./components/Taskbar";
-import { WindowSizeProvider } from './WindowSizeContext'; // Import the provider
+import { WindowSizeProvider } from './handlers/WindowSizeContext'; // Import the provider
+import { ReduxProvider } from './redux/ReduxProvider';
 
 export default function RootLayout({
   children,
@@ -19,9 +20,11 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-gray-100 min-h-screen min-w-screen">
         <Taskbar />
         <main className="w-full mx-auto w-full">
-          <WindowSizeProvider> {/* Wrap children with the provider */}
-            {children}
-          </WindowSizeProvider>
+          <ReduxProvider>
+            <WindowSizeProvider> {/* Wrap children with the provider */}
+              {children}
+            </WindowSizeProvider>
+          </ReduxProvider>
         </main>
       </body>
     </html>
