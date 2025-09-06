@@ -2,7 +2,6 @@ import logging
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from pydantic import BaseModel
-from devices.gig_e_driver import GigECameraNode
 from .state import gige_camera_nodes
 
 logger = logging.getLogger(__name__)

@@ -5,9 +5,6 @@ import os
 import json
 import psycopg2
 import logging
-from utils.gigE.camera_features import GigEInteractiveTool
-gi.require_version('Aravis', '0.8')
-from gi.repository import Aravis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -263,7 +260,10 @@ async def get_all_gigE_cam_ids():
             conn.close()
     return camera_ids
 
-async def get_gigE_camera(camera_identifier: str):
+from typing import Union
+import json
+
+async def get_gigE_camera(camera_id: Union[str, int]):
     """Fetches camera details and its features from the database."""
     conn = get_db_connection()
     if not conn:
@@ -272,11 +272,14 @@ async def get_gigE_camera(camera_identifier: str):
 
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE identifier = %s;", (camera_identifier,))
+            if isinstance(camera_id, int):
+                cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE id = %s;", (camera_id,))
+            else:
+                cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE identifier = %s;", (camera_id,))
             camera_row = cur.fetchone()
 
             if not camera_row:
-                logger.warning(f"No camera found with identifier: {camera_identifier}")
+                logger.warning(f"No camera found with identifier: {camera_id}")
                 return None
 
             camera_data = {
@@ -338,7 +341,7 @@ async def get_gigE_camera(camera_identifier: str):
             return camera_data
 
     except Exception as e:
-        logger.error(f"Error fetching camera '{camera_identifier}' with features: {e}")
+        logger.error(f"Error fetching camera '{camera_id}' with features: {e}")
         return None
     finally:
         if conn:

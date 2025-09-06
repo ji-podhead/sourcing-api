@@ -104,9 +104,9 @@ export const handleCreateCamera = createAsyncThunk(
       }
       if (newCameraProtocol === 'gigE') {
         const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-        if (!ipRegex.test(newCameraId)) {
-          throw new Error("Invalid IP address format for GigE camera.");
-        }
+        // if (!ipRegex.test(newCameraId)) {
+        //   throw new Error("Invalid IP address format for GigE camera.");
+        // }
       }
       const response = await fetch(`${ROS_API_URL}/create_camera`, {
         method: "POST",

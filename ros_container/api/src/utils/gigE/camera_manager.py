@@ -37,10 +37,13 @@ async def initialize_camera_data(camera_id=None, camera_protocol=None):
                 update_camera_features(camera_id)
             else:
                 logger.info("Camera features not initialized. Processing cameras...")
-                cam= GigEInteractiveTool()
-                await cam.initialize(camera_id)
-                await create_gigE_camera(camera_id,cam)
-                logger.info("successfully created cam, updating values")
+                cam = GigEInteractiveTool()
+                try:
+                    await cam.initialize(camera_id)
+                    await create_gigE_camera(camera_id, cam)
+                    logger.info("successfully created cam, updating values")
+                finally:
+                    cam.close() # Ensure camera control is released
 
     except Exception as e:
         logger.error(f"An unexpected error occurred during camera data handling: {e}")

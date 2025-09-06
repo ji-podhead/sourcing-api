@@ -50,6 +50,14 @@ class GigEInteractiveTool:
         self.feature_categories={} # New attribute to store category-based features
         self.all_features_map={} # New attribute to store all top-level features for quick lookup
         
+    def close(self):
+        """Explicitly releases the camera object."""
+        if self.camera:
+            # By setting the reference to None, we allow the garbage collector
+            # to destroy the object, which in turn calls g_object_unref()
+            # on the underlying C object, releasing control.
+            self.camera = None
+            print("GigEInteractiveTool: Camera object reference released.")
 
     async def initialize(self,camera_identifier):
         """Dumps the GenICam XML from the camera and merges group/category features."""

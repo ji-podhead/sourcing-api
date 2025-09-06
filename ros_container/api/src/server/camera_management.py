@@ -78,8 +78,8 @@ async def create_camera(camera_data: Dict[str, str]):
     logger.info(f"Received request to create camera: Protocol={protocol}, ID={camera_id}")
     try:
         if protocol == "gigE":
-            if not is_valid_ip(camera_id):
-                raise HTTPException(status_code=400, detail=f"Invalid IP address format for gigE camera: {camera_id}")
+            # if not is_valid_ip(camera_id):
+            #     raise HTTPException(status_code=400, detail=f"Invalid IP address format for gigE camera: {camera_id}")
             
             existing_camera = await get_gigE_camera(camera_id)
             if not existing_camera:

@@ -4,7 +4,6 @@ from typing import List, Dict, Optional, Any
 from pydantic import BaseModel
 import yaml
 import os
-from devices.gig_e_driver import GigECameraNode
 from .state import gige_camera_nodes
 from utils.db.db_utils import (
     create_preset,
