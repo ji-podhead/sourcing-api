@@ -1,0 +1,21 @@
+- device_identifier: "200.0.0.164"
+  name: "Low Light"
+  configuration:
+    Gain: 
+      value: "x6_0"
+      type: "Enumeration"
+    ExposureTime:
+      value: 50000
+      type: "Integer"
+- device_identifier: "200.0.0.164"
+  name: "High Speed"
+  configuration:
+    ExposureTime:
+      value: 1000
+      type: "Integer"
+    AcquisitionFrameRateEnable:
+      value: True
+      type: "Boolean"
+    AcquisitionFrameRate:
+      value: 100
+      type: "Float"

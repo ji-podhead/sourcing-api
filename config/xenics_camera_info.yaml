@@ -1,0 +1,31 @@
+# Placeholder for Xenics camera calibration information
+# Replace with actual calibration data if available
+
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+distortion_model: "plumb_bob"
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+
+intrinsic_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+ntainer        | INFO:     127.0.0.1:53544 - "POST /driver/xenics/publish HTTP/1.1" 404 Not Found
+ros_container        | 2025-08-22 02:33:36,273 - INFO - Status for xenics driver: stopped
+ros_container        | INFO:     127.0.0.1:55756 - "GET /driver/xenics/status HTTP/1.1" 200 OK

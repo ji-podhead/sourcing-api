@@ -1,0 +1,26 @@
+guid: The Imaging Source Europe GmbH-DFK 33GX547-11520182
+frame_id: camera_gv
+stream_names:
+- vis
+dynamic_parameters_yaml_url: ''
+camera_info_urls: config/imaging_source_camera_info.yaml
+TransportLayerControl:
+  GevSCPSPacketSize: 9000
+  PtpEnable: false
+ImageFormatControl:
+  PixelFormat:
+  - BayerRG8
+  Width: 2448
+  Height: 2048
+AcquisitionControl:
+  ExposureTime: 14500
+  ExposureAuto: 'Off'
+  AcquisitionFrameRate: 10
+AnalogControl:
+  GainAuto: Continuous
+  Gain:
+    Gain: 4.5
+  BalanceWhiteAuto: Once
+  BalanceRatio:
+    Red: 1.6
+    Blue: 2

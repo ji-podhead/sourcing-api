@@ -1,0 +1,25 @@
+# IR Camera Configuration
+
+guid: "Xenics-Ceres-640-GigE-23255"
+frame_id: "ir_camera"
+stream_names: [ "thermal" ]
+camera_info_urls: config/xenics_camera_info.yaml
+TransportLayerControl:
+  GevSCPSPacketSize: 9000
+  PtpEnable: False
+
+ImageFormatControl:
+  PixelFormat:
+    - "Mono16"
+  Width: 640
+  Height: 480
+
+AcquisitionControl:
+  AcquisitionSource: "Detector"
+  ExposureTime: 30000.0  # in microseconds
+  ExposureAuto: "Off"  # 'Off' or 'Continuous'
+  AcquisitionFrameRateEnable: True
+
+AnalogControl:
+  Gain: 1.0
+  GainAuto: "Off"

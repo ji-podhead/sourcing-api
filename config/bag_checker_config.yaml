@@ -1,0 +1,27 @@
+sensors:
+  lidar:
+    description: "Raw LiDAR packets as received from an Ouster OS0-128. Warning: Limit field of view."
+    topic: "/ouster/lidar_packets"
+    frequency: 650
+    minimal_data_rate: 15000000
+
+  imu:
+    description: "Raw IMU packets as received from an Ouster OS0-128."
+    topic: "/ouster/imu_packets"
+    frequency: 100
+    minimal_data_rate: 5000
+
+  camera:
+    description: "Image data as ROS2 image message."
+    topic: "/deepsafety/imaging_source/image_raw"
+    frequency: 10
+    minimal_data_rate: 40000000
+
+thresholds:
+  frequency:
+    description: "Maximum difference of the inverses of the frequencies (actual vs. expected)."
+    value: 0.05
+
+  min_num_messages_per_second:
+    description: "Minimal number of messages for a topic to be considered active."
+    value: 1.0
