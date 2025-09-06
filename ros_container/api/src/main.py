@@ -17,15 +17,8 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 from pydantic import BaseModel
 from devices.gig_e_driver import GigECameraNode
-# from server.root import app
-import server.camera_management
-import server.driver_management
-import server.feature_control
-import server.preset_management
-import server.recording_management
-import server.configuration_management
-import server.terminal
-import server.logs
+from routers.api import router as api_router
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -42,9 +35,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-
 )
 
+app.include_router(api_router)
 
 @app.get("/")
 async def read_root():
@@ -53,39 +46,6 @@ async def read_root():
     Returns a simple message to confirm the API is running.
     """
     return {"message": "ROS Container FastAPI is running!"}
-
-# Add camera management routes
-for route in server.camera_management.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add driver management routes
-for route in server.driver_management.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add feature control routes
-for route in server.feature_control.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add preset management routes
-for route in server.preset_management.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add recording management routes
-for route in server.recording_management.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add configuration management routes
-for route in server.configuration_management.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add terminal route
-for route in server.terminal.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
-# Add logs route
-for route in server.logs.routes:
-    app.add_api_route(route.path, route.endpoint, methods=route.methods)
-
 
 # TODO: Add endpoints for streaming (more complex, requires WebRTC or similar)x
 

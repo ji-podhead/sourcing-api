@@ -5,8 +5,25 @@ This project provides a robust and modular framework for data sourcing, focusing
 ## Project Goals
 
 *   **Modular API:** Develop a flexible and robust API for managing sourcing processes, including sensor control and data analysis.
-*   **Clean Architecture:** Ensure a clear separation of concerns between infrastructure, container orchestration, and application logic for improved maintainability. The FastAPI application is now decoupled from `rclpy` and communicates with ROS2 via `roslibpy` and `rosbridge_server`.
+*   **Clean Architecture:** The FastAPI application is now decoupled from `rclpy` and communicates with ROS2 via `roslibpy` and `rosbridge_server`.
 *   **Extensibility:** Design the system to be easily extensible, allowing for the integration of new sensors, data processing modules, and features.
+
+
+## Architecture Overview: Process Model
+**How does communication work?**
+
+Communication between the isolated FastAPI application and the driver subprocesses is handled by the **ROS 2 middleware**, specifically via `rosbridge_server`:
+
+-   The main FastAPI application does not interact with the hardware directly. Instead, classes like `GigECameraNode` act as **ROS 2 clients**.
+-   These clients use the `roslibpy` library to communicate over WebSockets with a `rosbridge_server`.
+-   The `rosbridge_server` acts as a bridge, translating these WebSocket messages into standard ROS 2 topics, services, and actions.
+-   When an API endpoint needs to set a camera feature, it calls a method on the client class (`GigECameraNode`). This method, in turn, makes a **ROS 2 service call** to the actual driver node running in the separate process.
+
+
+| Why Subprocesses over Threads? | Bypassing the Global Interpreter Lock (GIL) | Independent Environments |
+| --- | --- | --- |
+|  Each driver runs in its own isolated memory space. If a driver script encounters a critical error or crashes (which can happen with hardware-specific libraries), it will not affect the main FastAPI server. The API remains stable and can even be designed to manage and restart the failed driver process. In a threaded model, a similar crash would likely terminate the entire application due to shared memory. |  Python's GIL restricts a single process from executing Python bytecode on multiple cores simultaneously. While many driver tasks are I/O-bound, they can involve CPU-intensive operations (like image processing). By using separate processes, each driver can run on a different CPU core, allowing for true parallelism and making full use of the system's resources without being bottlenecked by the GIL | Each subprocess can be configured with its own environment. This is particularly crucial for integrating with ROS (Robot Operating System). The driver scripts often require a specific ROS environment, which is typically set up by sourcing a setup script (e.g., `source /opt/ros/humble/setup.bash`). This is cleanly and reliably managed on a per-process basis using `subprocess`, a task that is complex and error-prone to handle within a single multi-threaded process. |
+
 
 ## Project Structure
 
@@ -17,13 +34,11 @@ The main project structure includes the following top-level directories and file
 minimal_sourcing_kit/
 │
 ├── .gitignore                  # Specifies intentionally untracked files to ignore by Git.
-├── build.bash                  # Script for building the entire project.
 ├── docker-compose.yaml         # Defines and runs multi-container Docker applications.
 ├── Makefile                    # Automates build, test, and deployment tasks.
 ├── README.md                   # This file, providing an overview of the project.
 ├── config/                     # Centralized configuration files for various components.
 ├── data/                       # Directory for storing ROS bag files and other sensor data.
-├── create_user.sh/             # Script for creating a user within the Docker containers.
 ```
 
 ### Backend (ros_container)
@@ -36,26 +51,14 @@ ros_container/
 ├── create_user.sh          # Script for user creation within this container.
 ├── Dockerfile              # Dockerfile for building the ROS application container.
 ├── start_services.sh       # Script to start ROS services within the container.
-├── api/                    # FastAPI application for API endpoints.
-│   ├── src/                # Source code for the FastAPI application.
-│   │   ├── main.py         # Main Python script for the FastAPI server.
-│   │   ├── devices/        # Device drivers (e.g., `gig_e_driver.py` using `roslibpy`).
-│   │   └── utils/          # Utility scripts.
-├── scripts/                # Custom scripts for ROS operations and device control (legacy, to be refactored).
-│   ├── devices/            # Scripts for interacting with specific hardware devices.
-│   │   ├── imaging_source.py # Python script for Imaging Source cameras.
-│   │   ├── ouster.py       # Python script for Ouster lidar.
-│   │   └── record.py       # Python script for recording data.
-│   ├── recording/          # Scripts related to ROS bag recording and playback.
-│   │   ├── play.bash       # Bash script for playing ROS bags.
-│   │   └── record.bash     # Bash script for recording ROS bags.
-│   ├── server/             # Backend server logic (e.g., FastAPI for API endpoints).
-│   │   └── main.py         # Main Python script for the server.
-│   └── utils/              # Utility scripts for common tasks.
-│       ├── create_rosbag_name.py # Utility to generate ROS bag names.
-│       ├── discover_imaging_source_camera.py # Utility to discover Imaging Source cameras.
-│       ├── is_online.bash  # Utility to check network connectivity.
-│       └── ouster_address.py # Utility to get Ouster lidar IP address.
+└── api/                    # FastAPI application for API endpoints.
+    └── src/                # Source code for the FastAPI application.
+        ├── main.py         # Main Python script for the FastAPI server.
+        ├── devices/        # Device drivers (e.g., `gig_e_driver.py` using `roslibpy`).
+        ├── routers/        # FastAPI routers for different API modules.
+        │   └── api.py      # Main router that includes all other API routers.
+        ├── server/         # Server-side logic for handling API requests.
+        └── utils/          # Utility scripts.
 ```
 
 ### Frontend (dashboard_container)
@@ -73,7 +76,6 @@ dashboard_container/
 │   │   ├── ouster/         # Ouster lidar data visualization page.
 │   │   ├── record/         # Data recording control page.
 │   │   ├── replay/         # Data replay control page.
-│   │   ├── rgb/            # RGB camera data visualization page.
 │   │   └── webviz/         # Webviz integration page.
 │   └── ...
 └── ...
@@ -97,20 +99,22 @@ ros_base_container/
 
 ## API Documentation
 
-The project aims to provide a clear and well-documented API for interacting with its components. The primary API logic now resides within the `ros_container/api/src/main.py` file, utilizing FastAPI for RESTful endpoints. Communication with ROS2 is handled via `roslibpy` and `rosbridge_server`.
+The project provides a clear and well-documented API for interacting with its components. The API logic resides within the `ros_container/api/src` directory and is built with FastAPI, featuring a modular design with multiple routers for different functionalities. Communication with ROS2 is handled via `roslibpy` and `rosbridge_server`.
 
-### Key API Endpoints (Planned/Example)
+### API Modules
 
-*   `/record`: Endpoint to start and stop ROS bag recordings.
-*   `/play`: Endpoint to play back ROS bag files.
-*   `/status`: Endpoint to retrieve the current status of sensors and recording processes.
-*   `/devices`: Endpoint to list and configure connected devices (e.g., cameras, Ouster).
-*   `/convert`: Endpoint to convert ROS bag formats (e.g., MCAP to SQLite3).
-*   `/create_camera`: Endpoint to create and start a new GigE camera node.
-*   `/camera/{camera_id}/set_feature`: Endpoint to set a feature for a specific camera in real-time.
-*   `/delete_camera`: Endpoint to stop and remove a camera node.
+The API is organized into the following modules, each handling a specific set of functionalities:
 
-Detailed API documentation, including request/response schemas and examples, will be generated or maintained alongside the implementation. For Python-based APIs, tools like Sphinx, MkDocs, or OpenAPI/Swagger UI can be integrated for automatic documentation generation.
+*   **Camera Management (`camera_management`):** Manages camera-related operations, such as creating, configuring, and deleting camera nodes.
+*   **Configuration Management (`configuration_management`):** Handles the loading and saving of system and device configurations.
+*   **Driver Management (`driver_management`):** Manages device drivers and their lifecycle.
+*   **Feature Control (`feature_control`):** Provides endpoints for controlling device features in real-time.
+*   **Logs (`logs`):** Manages system and device logs.
+*   **Preset Management (`preset_management`):** Handles the creation, loading, and saving of device presets.
+*   **Recording Management (`recording_management`):** Manages ROS bag recording and playback.
+*   **Terminal (`terminal`):** Provides a web-based terminal for interacting with the system.
+
+Detailed API documentation, including request/response schemas and examples, can be accessed through the auto-generated OpenAPI/Swagger UI when the application is running.
 
 ## Build & Development
 
@@ -126,7 +130,7 @@ Detailed API documentation, including request/response schemas and examples, wil
   ```bash
   make build_ros_container
   ```
-  Builds the main application container, layering your code and scripts on top of the base image. You can run this after `make build_ros_base` if you don't want to use Docker Compose.
+  Builds the main application container, layering your code and scripts on top of the a base image. You can run this after `make build_ros_base` if you don't want to use Docker Compose.
 
 - **Build the dashboard container:**
   ```bash

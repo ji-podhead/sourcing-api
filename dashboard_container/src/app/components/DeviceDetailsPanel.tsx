@@ -76,7 +76,8 @@ const DeviceDetailsPanel: React.FC = () => {
             onChange={e => dispatch(handleSetPublishingPreset({ cameraIdentifier: selectedCamera.identifier, presetName: e.target.value }))}
             className="w-full p-2 border rounded-md"
           >
-            <option value="">-- None --</option>
+            <option value="">-- Default --</option>
+            <option value="default">Default</option>
             {presets.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
         </div>

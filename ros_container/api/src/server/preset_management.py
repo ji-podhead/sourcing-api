@@ -1,11 +1,11 @@
 import logging
-from fastapi import FastAPI, HTTPException
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Optional, Any
 from pydantic import BaseModel
 import yaml
 import os
 from devices.gig_e_driver import GigECameraNode
+from .state import gige_camera_nodes
 from utils.db.db_utils import (
     create_preset,
     get_preset,
@@ -17,13 +17,13 @@ from utils.gigE.camera_manager import get_gigE_camera
 
 logger = logging.getLogger(__name__)
 
-routes = []
-gige_camera_nodes: Dict[str, GigECameraNode] = {}
+router = APIRouter()
 CONFIG_DIR = "/home/sourcingapi/config" # Directory for configuration files
 
 class PresetData(BaseModel):
     name: str
 
+@router.post("/camera/{camera_id}/save_preset")
 async def save_camera_preset(camera_id: str, preset_data: PresetData):
     if camera_id not in gige_camera_nodes:
         raise HTTPException(status_code=404, detail=f"Camera '{camera_id}' not running.")
@@ -41,6 +41,7 @@ async def save_camera_preset(camera_id: str, preset_data: PresetData):
         raise HTTPException(status_code=500, detail=f"Failed to create preset '{preset_data.name}'.")
     
 # --- Preset Management Endpoints ---
+@router.post("/presets/{device_identifier}")
 async def create_preset_endpoint(device_identifier: str, preset_data: Dict[str, Any]):
     """Creates a new preset for a given device."""
     preset_name = preset_data.get("name")
@@ -54,6 +55,7 @@ async def create_preset_endpoint(device_identifier: str, preset_data: Dict[str, 
     else:
         raise HTTPException(status_code=500, detail=f"Failed to create preset '{preset_name}' for device '{device_identifier}'.")
 
+@router.get("/presets/{device_identifier}")
 async def get_presets_for_device_endpoint(device_identifier: str):
     """Retrieves all presets for a given device."""
     presets = await get_presets_for_device(device_identifier)
@@ -63,6 +65,7 @@ async def get_presets_for_device_endpoint(device_identifier: str):
         # This case should ideally not happen if get_presets_for_device handles errors internally
         raise HTTPException(status_code=500, detail=f"Failed to retrieve presets for device '{device_identifier}'.")
 
+@router.get("/presets/{device_identifier}/{preset_name}")
 async def get_preset_endpoint(device_identifier: str, preset_name: str):
     """Retrieves a specific preset by device identifier and preset name."""
     preset_config = await get_preset(device_identifier, preset_name)
@@ -71,6 +74,7 @@ async def get_preset_endpoint(device_identifier: str, preset_name: str):
     else:
         raise HTTPException(status_code=404, detail=f"Preset '{preset_name}' not found for device '{device_identifier}'.")
 
+@router.put("/presets/{device_identifier}/{preset_name}")
 async def update_preset_endpoint(device_identifier: str, preset_name: str, preset_data: Dict[str, Any]):
     """Updates an existing preset."""
     new_configuration = preset_data.get("configuration")
@@ -83,6 +87,7 @@ async def update_preset_endpoint(device_identifier: str, preset_name: str, prese
         # This could mean the preset was not found or an error occurred
         raise HTTPException(status_code=404, detail=f"Preset '{preset_name}' not found or failed to update for device '{device_identifier}'.")
 
+@router.delete("/presets/{device_identifier}/{preset_name}")
 async def delete_preset_endpoint(device_identifier: str, preset_name: str):
     """Deletes a preset."""
     if delete_preset(device_identifier, preset_name):
@@ -90,6 +95,7 @@ async def delete_preset_endpoint(device_identifier: str, preset_name: str):
     else:
         raise HTTPException(status_code=404, detail=f"Preset '{preset_name}' not found for device '{device_identifier}'.")
 
+@router.post("/presets/load_from_yaml")
 async def load_presets_from_yaml():
     """Loads presets from the default 'presets.yaml' file in the config directory."""
     filename = "presets.yaml"
@@ -124,11 +130,7 @@ async def load_presets_from_yaml():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load presets from YAML: {e}")
 
-route1 = APIRoute("/camera/{camera_id}/save_preset", endpoint=save_camera_preset, methods=["POST"])
-route2 = APIRoute("/presets/{device_identifier}", endpoint=create_preset_endpoint, methods=["POST"])
-route3 = APIRoute("/presets/{device_identifier}", endpoint=get_presets_for_device_endpoint, methods=["GET"])
-route4 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=get_preset_endpoint, methods=["GET"])
-route5 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=update_preset_endpoint, methods=["PUT"])
+@router.post("/presets/{device_identifier}/{preset_name}/apply")
 async def apply_preset_endpoint(device_identifier: str, preset_name: str):
     """Applies a preset to a given device."""
     preset_config = await get_preset(device_identifier, preset_name)
@@ -145,16 +147,3 @@ async def apply_preset_endpoint(device_identifier: str, preset_name: str):
             await camera_node.set_feature(feature_name, value)
 
     return {"status": "success", "message": f"Preset '{preset_name}' applied to device '{device_identifier}'."}
-
-route6 = APIRoute("/presets/{device_identifier}/{preset_name}", endpoint=delete_preset_endpoint, methods=["DELETE"])
-route7 = APIRoute("/presets/load_from_yaml", endpoint=load_presets_from_yaml, methods=["POST"])
-route8 = APIRoute("/presets/{device_identifier}/{preset_name}/apply", endpoint=apply_preset_endpoint, methods=["POST"])
-
-routes.append(route1)
-routes.append(route2)
-routes.append(route3)
-routes.append(route4)
-routes.append(route5)
-routes.append(route6)
-routes.append(route7)
-routes.append(route8)

@@ -88,7 +88,7 @@ services:
       - ros_container # Stellt sicher, dass der ROS 2 Knoten zuerst startet
     environment:
       # Sagt diesem Container, wo der ROS 1 Master ist
-      ROS_MASTER_URI: "http://200.0.0.243:11311"
+      ROS_MASTER_URI: "http://localhost:11311"
     network_mode: host
 
   db:

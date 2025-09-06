@@ -5,13 +5,13 @@ import asyncio
 import pty
 import select
 import logging
-from fastapi import WebSocket, WebSocketDisconnect
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
-routes = []
+router = APIRouter()
 
+@router.websocket("/terminal")
 async def websocket_terminal(websocket: WebSocket):
     await websocket.accept()
     
@@ -77,5 +77,3 @@ async def websocket_terminal(websocket: WebSocket):
     process.wait()
     os.close(master_fd)
     logger.info(f"Terminal shell process {process.pid} terminated and PTY closed.")
-
-route = APIRoute("/terminal", endpoint=websocket_terminal, methods=["GET"])

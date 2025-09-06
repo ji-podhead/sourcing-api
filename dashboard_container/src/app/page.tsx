@@ -185,7 +185,7 @@ export default function Home() {
       <div className="w-full bg-white p-6 rounded-lg shadow-md mb-8">
         <h2 className="text-2xl font-semibold mb-4">Webviz</h2>
         <div className="w-full h-96 border rounded-md">
-          <iframe src="/webviz" className="w-full h-full" />
+          <iframe src="/webviz" className="w-full h-full"></iframe>
         </div>
       </div>
     </div>

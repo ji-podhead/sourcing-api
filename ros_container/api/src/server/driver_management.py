@@ -3,18 +3,15 @@ import subprocess
 import signal
 import logging
 import asyncio
-from fastapi import FastAPI, HTTPException
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Optional
 from utils.logs import LogConnectionManager
 from devices.gig_e_driver import GigECameraNode
+from .state import driver_processes, gige_camera_nodes, recording_process
 
 logger = logging.getLogger(__name__)
 
-routes = []
-driver_processes: Dict[str, subprocess.Popen] = {}
-recording_process: Optional[subprocess.Popen] = None
-gige_camera_nodes: Dict[str, GigECameraNode] = {}
+router = APIRouter()
 DEVICE_LAUNCH_SCRIPTS = {
     "camera": "imaging_source.py",
     "ouster": "ouster.py",
@@ -26,11 +23,13 @@ def is_process_running(proc: Optional[subprocess.Popen]) -> bool:
     """Checks if a subprocess.Popen object represents a running process."""
     return proc is not None and proc.poll() is None
 
+@router.post("/driver/{device_name}/start")
 async def start_driver(device_name: str, protocol: Optional[str] = None, camera_id: Optional[str] = None):
     """
     Starts the driver for a specified device and streams its logs.
     If the driver is already running, it returns an info message.
     """
+    print(f"Starting driver for device: {device_name}, protocol: {protocol}, camera_id: {camera_id}")
     if device_name == "camera":
         if protocol == "gigE":
             if not camera_id:
@@ -105,6 +104,7 @@ async def start_driver(device_name: str, protocol: Optional[str] = None, camera_
             driver_processes.pop(device_name, None)
             raise HTTPException(status_code=500, detail=f"Error starting {device_name} driver: {str(e)}")
 
+@router.post("/driver/{device_name}/stop")
 async def stop_driver(device_name: str, protocol: Optional[str] = None, camera_id: Optional[str] = None):
     """
     Stops the driver for a specified device.
@@ -142,11 +142,13 @@ async def stop_driver(device_name: str, protocol: Optional[str] = None, camera_i
             logger.error(f"Failed to stop {device_name} driver (PID: {process.pid}): {e}")
             raise HTTPException(status_code=500, detail=f"Failed to stop {device_name} driver: {e}")
 
+@router.get("/driver/{device_name}/status")
 async def get_driver_status(device_name: str, protocol: Optional[str] = None, camera_id: Optional[str] = None):
     """
     Retrieves the current status of a specified device driver.
     Returns "running" if the driver process is active, otherwise "stopped".
     """
+    print(f"Getting status for device: {device_name}, protocol: {protocol}, camera_id: {camera_id}"   )
     if protocol == "gigE":
         if not camera_id:
             raise HTTPException(status_code=400, detail="camera_id is required for getting status of a GigE camera.")
@@ -207,11 +209,3 @@ async def stream_subprocess_error(process: subprocess.Popen, logger: logging.Log
             logger.error(f"[{device_name.capitalize()} STDERR] {line.strip()}")
     except Exception as e:
         logger.error(f"Error reading stderr for {device_name}: {e}")
-
-route1 = APIRoute("/driver/{device_name}/start", endpoint=start_driver, methods=["POST"])
-route2 = APIRoute("/driver/{device_name}/stop", endpoint=stop_driver, methods=["POST"])
-route3 = APIRoute("/driver/{device_name}/status", endpoint=get_driver_status, methods=["GET"])
-
-routes.append(route1)
-routes.append(route2)
-routes.append(route3)

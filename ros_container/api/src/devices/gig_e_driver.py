@@ -31,7 +31,7 @@ class GigECameraNode:
             # run_forever() blockiert, bis terminate() aufgerufen wird.
             self.ros_client.run_forever() 
         except Exception as e:
-            logger.error(f"[{self.camera_id}] ROS connection error: {e}")
+            logger.error(f"[{self.camera_id}] ROS connection error: {e}, type: {type(e)}")
         finally:
             logger.info(f"[{self.camera_id}] ROS connection thread terminated.")
             self.is_running = False

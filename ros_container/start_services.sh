@@ -17,7 +17,7 @@ sudo apt-get update && sudo apt-get install -y ros-humble-rosbridge-server
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml &
 pip install rosros roslibpy
 # Add a delay to allow rosbridge_server to initialize
-sleep 5
+sleep 10
 
 # Start the FastAPI application
 # filepath: ros_container/start_services.sh

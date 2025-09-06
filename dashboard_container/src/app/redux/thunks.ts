@@ -16,7 +16,7 @@ import { ROS_API_URL, LOGS_WEBSOCKET_URL } from '../utils/apiConfig';
 
 export const fetchCameras = createAsyncThunk(
   'devices/fetchCameras',
-  async (_, { dispatch, getState }) => {
+  async (_, { dispatch }) => {
     try {
       const response = await fetch(`${ROS_API_URL}/get_all_cams/gigE`);
       if (!response.ok) {
@@ -25,14 +25,6 @@ export const fetchCameras = createAsyncThunk(
       const data = await response.json();
       const cameras = data || [];
       dispatch(setDynamicCameras(cameras));
-
-      const { devices } = getState() as RootState;
-      const { selectedCamera } = devices;
-
-      if (selectedCamera) {
-        const updatedSelectedCamera = cameras.find((cam: DeviceStatus) => cam.id === selectedCamera.id);
-        dispatch(setSelectedCamera(updatedSelectedCamera || null));
-      }
       return cameras;
     } catch (error: unknown) {
       const errorMessage = `Error fetching cameras: ${(error as Error).message}`;
@@ -124,13 +116,14 @@ export const handleCreateCamera = createAsyncThunk(
           protocol: newCameraProtocol,
         }),
       });
-      const data = await response.json();
+      const newCamera = await response.json();
       if (response.ok) {
         dispatch(setMessage(`Camera ${newCameraId} created successfully!`));
         dispatch(setShowMessage(true));
-        dispatch(fetchCameras());
+        await dispatch(fetchCameras());
+        dispatch(fetchCameraDetails({ cameraId: newCameraId, protocol: newCameraProtocol }));
       } else {
-        throw new Error(data.detail || response.statusText);
+        throw new Error(newCamera.detail || response.statusText);
       }
     } catch (error: unknown) {
       const errorMessage = `Error creating camera: ${(error as Error).message}`;
@@ -151,14 +144,17 @@ export const handleAction = createAsyncThunk(
       if (device.type === "gigE") {
         requestBody = {
           protocol: device.type,
-          camera_id: device.id,
+          camera_id: device.id || device.identifier,
+          device_name: device.id,
         };
       }
-
-      const response = await fetch(`${ROS_API_URL}${endpoint}`, {
+      let url = `${ROS_API_URL}${endpoint}`;
+      if (device.type === "gigE") {
+        url += `?protocol=${device.type}&camera_id=${device.id || device.identifier}`;
+      }
+      const response = await fetch(url, {
         method: "POST",
         headers: headers,
-        body: device.type === "gigE" ? JSON.stringify(requestBody) : undefined,
       });
       const data = await response.json();
       if (response.ok) {
@@ -273,7 +269,7 @@ export const handleSaveNotes = createAsyncThunk(
 
 export const handleSetPublishingPreset = createAsyncThunk(
   'camera/handleSetPublishingPreset',
-  async ({ cameraIdentifier, presetName }: { cameraIdentifier: string, presetName: string }, { dispatch }) => {
+  async ({ cameraIdentifier, presetName }: { cameraIdentifier: string, presetName: string }, { dispatch, getState }) => {
     try {
       const response = await fetch(`${ROS_API_URL}/camera/${cameraIdentifier}/publishing_preset`, {
         method: 'POST',
@@ -283,6 +279,10 @@ export const handleSetPublishingPreset = createAsyncThunk(
       const data = await response.json();
       if (response.ok) {
         dispatch(setMessage('Publishing preset set successfully.'));
+        const { devices } = getState() as RootState;
+        if (devices.selectedCamera) {
+          dispatch(fetchCameraDetails({ cameraId: devices.selectedCamera.identifier, protocol: devices.selectedCamera.type }));
+        }
       } else {
         throw new Error(data.detail);
       }
@@ -393,8 +393,6 @@ export const fetchAllStatuses = createAsyncThunk(
       if (updatedSelected && updatedSelected.status !== selectedCamera.status) {
         dispatch(setSelectedCamera(updatedSelected));
       }
-      // Also fetch the details for the selected camera to update its features
-      dispatch(fetchCameraDetails({ cameraId: selectedCamera.id, protocol: selectedCamera.type }));
     }
   }
 );

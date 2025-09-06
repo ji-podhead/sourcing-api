@@ -4,16 +4,15 @@ import signal
 import logging
 import asyncio
 import sys
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from fastapi.routing import APIRoute
 from typing import List, Optional
 from utils.logs import LogConnectionManager
+from .state import driver_processes, recording_process
 
 logger = logging.getLogger(__name__)
 
-routes = []
-recording_process: Optional[subprocess.Popen] = None
+router = APIRouter()
 ROS_SETUP_COMMAND = "source /opt/ros/humble/setup.bash"
 CONFIG_DIR = "/home/sourcingapi/config" # Directory for configuration files
 RECORDINGS_DIR = "/home/sourcingapi/data" # This should match the volume mount in docker-compose.yaml
@@ -22,6 +21,7 @@ def is_process_running(proc: Optional[subprocess.Popen]) -> bool:
     """Checks if a subprocess.Popen object represents a running process."""
     return proc is not None and proc.poll() is None
 
+@router.post("/recording/start")
 async def start_recording():
     """
     Starts a new ROS bag recording.
@@ -57,6 +57,7 @@ async def start_recording():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/recording/stop")
 async def stop_recording():
     """
     Stops the current ROS bag recording.
@@ -73,6 +74,7 @@ async def stop_recording():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop recording: {e}")
 
+@router.get("/recording/status")
 async def get_recording_status():
     """
     Retrieves the current status of the ROS bag recording process.
@@ -80,6 +82,7 @@ async def get_recording_status():
     """
     return {"status": "running" if is_process_running(recording_process) else "stopped"}
 
+@router.get("/recordings")
 async def list_recordings() -> List[str]:
     """
     Lists all available ROS bag recordings in the designated recordings directory.
@@ -89,11 +92,12 @@ async def list_recordings() -> List[str]:
         if not os.path.exists(RECORDINGS_DIR):
             return []
         # Include .bag, .db3, and .mcap files for ROS2 bags
-        bags = [f for f in os.listdir(RECORDINGS_DIR) if f.endswith(".bag") or f.endswith(".db3") or f.endswith(".mcap")]
+        bags = [f for f in os.listdir(RECORDINGS_DIR) if f.endswith((".bag", ".db3", ".mcap"))]
         return bags
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/recordings/{bag_name}")
 async def download_recording(bag_name: str):
     """
     Downloads a specific ROS bag recording by its name.
@@ -103,6 +107,7 @@ async def download_recording(bag_name: str):
         return FileResponse(path=file_path, filename=bag_name, media_type="application/octet-stream")
     raise HTTPException(status_code=404, detail="Recording not found")
 
+@router.post("/recordings/play/{bag_name}")
 async def play_recording(bag_name: str):
     """
     Plays a specific ROS bag recording.
@@ -122,6 +127,7 @@ async def play_recording(bag_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start playback: {e}")
 
+@router.post("/recordings/stop_playback")
 async def stop_playback():
     """
     Stops the current ROS bag playback.
@@ -137,6 +143,7 @@ async def stop_playback():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop playback: {e}")
 
+@router.post("/recordings/convert")
 async def convert_bag_format(input_bag_name: str, output_format: str = "sqlite3"):
     """
     Converts a ROS bag file from one format to another.
@@ -163,21 +170,3 @@ async def convert_bag_format(input_bag_name: str, output_format: str = "sqlite3"
         raise HTTPException(status_code=500, detail=f"Bag conversion failed: {e.stderr}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred during conversion: {str(e)}")
-
-route1 = APIRoute("/recording/start", endpoint=start_recording, methods=["POST"])
-route2 = APIRoute("/recording/stop", endpoint=stop_recording, methods=["POST"])
-route3 = APIRoute("/recording/status", endpoint=get_recording_status, methods=["GET"])
-route4 = APIRoute("/recordings", endpoint=list_recordings, methods=["GET"])
-route5 = APIRoute("/recordings/{bag_name}", endpoint=download_recording, methods=["GET"])
-route6 = APIRoute("/recordings/play/{bag_name}", endpoint=play_recording, methods=["POST"])
-route7 = APIRoute("/recordings/stop_playback", endpoint=stop_playback, methods=["POST"])
-route8 = APIRoute("/recordings/convert", endpoint=convert_bag_format, methods=["POST"])
-
-routes.append(route1)
-routes.append(route2)
-routes.append(route3)
-routes.append(route4)
-routes.append(route5)
-routes.append(route6)
-routes.append(route7)
-routes.append(route8)

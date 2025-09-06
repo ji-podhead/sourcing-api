@@ -1,4 +1,5 @@
 "use client";
+
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
@@ -14,7 +15,7 @@ const DeviceSelectorPanel: React.FC = () => {
   const handleSelectCamera = (camId: string) => {
     const cam = dynamicCameras.find(c => c.id === camId);
     if (cam) {
-      dispatch(fetchCameraDetails({ cameraId: cam.id, protocol: cam.type }));
+      dispatch(setSelectedCamera(cam));
     } else {
       dispatch(setSelectedCamera(null));
     }
@@ -55,7 +56,10 @@ const DeviceSelectorPanel: React.FC = () => {
       >
         <option value="">-- Select a Device --</option>
         {dynamicCameras.map(cam => (
-          <option key={cam.id} value={cam.id}>
+          <option 
+            key={cam.id} 
+            value={cam.id}
+          >
             {cam.identifier} ({cam.type})
           </option>
         ))}

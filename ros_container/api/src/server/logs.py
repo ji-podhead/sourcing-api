@@ -1,15 +1,14 @@
 import logging
 import asyncio
-from fastapi import WebSocket, WebSocketDisconnect
-from fastapi.routing import APIRoute
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from utils.logs import LogConnectionManager
 
 logger = logging.getLogger(__name__)
 log_manager = LogConnectionManager(logger)
 
-routes = []
+router = APIRouter()
 
+@router.websocket("/logs")
 async def websocket_logs(websocket: WebSocket):
     logger.info("WebSocket connection established for logs.")
     await log_manager.connect(websocket)
@@ -24,5 +23,3 @@ async def websocket_logs(websocket: WebSocket):
     except Exception as e:
         logger.error(f"Error in websocket_logs handler: {e}")
         log_manager.disconnect(websocket) # Ensure disconnect is called on error
-
-routes.append(APIRoute("/logs", endpoint=websocket_logs, methods=["GET"]))

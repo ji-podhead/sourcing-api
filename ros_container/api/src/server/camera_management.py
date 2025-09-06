@@ -1,7 +1,8 @@
 import logging
 import ipaddress
-from fastapi import FastAPI, HTTPException
-from fastapi.routing import APIRoute
+import os
+import yaml
+from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Optional, Any
 from utils.gigE.camera_manager import initialize_camera_data, get_gigE_camera, get_all_gigE_cam_ids # Import get_db_connection
 from utils.db.db_utils import (
@@ -10,16 +11,18 @@ from utils.db.db_utils import (
 )
 from devices.gig_e_driver import GigECameraNode
 from pydantic import BaseModel
+from .state import gige_camera_nodes
 
 logger = logging.getLogger(__name__)
 
-routes = []
-gige_camera_nodes: Dict[str, GigECameraNode] = {}
+router = APIRouter()
+
 CONFIG_DIR = "/home/sourcingapi/config" # Directory for configuration files
 
+@router.get("/get_cam/{protocoll}/{camera_identifier}")
 async def get_cam(protocoll: str, camera_identifier:str):
     if(protocoll == "gigE"):
-        data=get_gigE_camera(camera_identifier)
+        data= await get_gigE_camera(camera_identifier)
         if(data is None):
             raise HTTPException(status_code=404, detail=f"Camera '{camera_identifier}' not found.")
         else:
@@ -27,6 +30,7 @@ async def get_cam(protocoll: str, camera_identifier:str):
     else:
         raise HTTPException(status_code=404, detail=f"Protocol '{protocoll}' not supported.")
 
+@router.get("/get_all_cams/{protocol}")
 async def get_all_cams(protocol: str):
     # Strip any leading/trailing single quotes from the protocol string
     protocol = protocol.strip("'")
@@ -54,10 +58,12 @@ async def get_all_cams(protocol: str):
         raise HTTPException(status_code=404, detail=f"Protocol '{protocol}' not supported.")
         return None
 
+@router.post("/update_cam/{protocoll}/{camera_identifier}")
 async def update_cam(protocoll: str, camera_identifier:str):
     if(protocoll == "gigE"):
         await initialize_camera_data(camera_identifier)
 
+@router.post("/create_camera")
 async def create_camera(camera_data: Dict[str, str]):
     """
     Creates a new camera based on provided ID and protocol.
@@ -124,18 +130,21 @@ class NotesData(BaseModel):
 class PresetNameData(BaseModel):
     preset_name: str
 
+@router.post("/camera/{camera_identifier}/notes")
 async def set_camera_notes(camera_identifier: str, data: NotesData):
     if update_camera_notes(camera_identifier, data.notes):
         return {"status": "success", "message": "Notes updated successfully."}
     else:
         raise HTTPException(status_code=500, detail="Failed to update notes.")
 
+@router.post("/camera/{camera_identifier}/publishing_preset")
 async def set_camera_publishing_preset(camera_identifier: str, data: PresetNameData):
     if update_camera_publishing_preset(camera_identifier, data.preset_name):
         return {"status": "success", "message": "Publishing preset updated successfully."}
     else:
         raise HTTPException(status_code=500, detail="Failed to update publishing preset.")
 
+@router.post("/delete_camera")
 async def delete_camera(camera_data: Dict[str, str]):
     camera_id = camera_data.get("id")
     if not camera_id:
@@ -155,19 +164,3 @@ def is_valid_ip(ip_address: str) -> bool:
         return True
     except ValueError:
         return False
-
-route1 = APIRoute("/get_cam/{protocol}/{camera_identifier}", endpoint=get_cam, methods=["GET"])
-route2 = APIRoute("/get_all_cams/{protocol}", endpoint=get_all_cams, methods=["GET"])
-route3 = APIRoute("/update_cam/{protocol}/{camera_identifier}", endpoint=update_cam, methods=["POST"])
-route4 = APIRoute("/create_camera", endpoint=create_camera, methods=["POST"])
-route5 = APIRoute("/camera/{camera_identifier}/notes", endpoint=set_camera_notes, methods=["POST"])
-route6 = APIRoute("/camera/{camera_identifier}/publishing_preset", endpoint=set_camera_publishing_preset, methods=["POST"])
-route7 = APIRoute("/delete_camera", endpoint=delete_camera, methods=["POST"])
-
-routes.append(route1)
-routes.append(route2)
-routes.append(route3)
-routes.append(route4)
-routes.append(route5)
-routes.append(route6)
-routes.append(route7)

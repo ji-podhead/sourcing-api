@@ -1,15 +1,15 @@
 import logging
-from fastapi import FastAPI, HTTPException
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, HTTPException
 from typing import Dict
 import yaml
 import os
 
 logger = logging.getLogger(__name__)
 
-routes = []
+router = APIRouter()
 CONFIG_DIR = "/home/sourcingapi/config" # Directory for configuration files
 
+@router.get("/config/{config_name}")
 async def get_config(config_name: str):
     """
     Reads and returns the content of a specified YAML configuration file.
@@ -26,6 +26,7 @@ async def get_config(config_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read configuration file: {e}")
 
+@router.post("/config/{config_name}")
 async def update_config(config_name: str, config_data: Dict):
     """
     Updates the content of a specified YAML configuration file.
@@ -39,9 +40,3 @@ async def update_config(config_name: str, config_data: Dict):
         return {"status": "success", "message": f"Configuration file '{config_name}' updated successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write configuration file: {e}")
-
-route1 = APIRoute("/config/{config_name}", endpoint=get_config, methods=["GET"])
-route2 = APIRoute("/config/{config_name}", endpoint=update_config, methods=["POST"])
-
-routes.append(route1)
-routes.append(route2)
