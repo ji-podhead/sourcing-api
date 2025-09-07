@@ -1,10 +1,20 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Preset, CameraFeature } from '../types';
 
+interface DiscoveredCamera {
+  name: string;
+  ip_address: string;
+  device_id: string;
+  is_in_db: boolean;
+  db_id: number | null;
+}
+
 interface DashboardState {
   selectedFeatureGroup: string | null;
   activeTab: 'features' | 'presets' | 'calibration';
   isSettingsOpen: boolean;
+  isDiscoveryPanelOpen: boolean;
+  discoveredCameras: DiscoveredCamera[];
   editingNotes: string;
   presets: Preset[];
   selectedPresetForEditing: Preset | null;
@@ -15,7 +25,7 @@ interface DashboardState {
   recordings: any[];
   message: string;
   showMessage: boolean;
-  newCameraId: string;
+  newCameraIdentifier: string;
   newCameraProtocol: string;
 }
 
@@ -23,6 +33,8 @@ const initialState: DashboardState = {
   selectedFeatureGroup: null,
   activeTab: 'features',
   isSettingsOpen: false,
+  isDiscoveryPanelOpen: false,
+  discoveredCameras: [],
   editingNotes: '',
   presets: [],
   selectedPresetForEditing: null,
@@ -33,7 +45,7 @@ const initialState: DashboardState = {
   recordings: [],
   message: '',
   showMessage: true,
-  newCameraId: '',
+  newCameraIdentifier: '',
   newCameraProtocol: 'gigE',
 };
 
@@ -49,6 +61,12 @@ const dashboardSlice = createSlice({
     },
     setIsSettingsOpen(state, action: PayloadAction<boolean>) {
       state.isSettingsOpen = action.payload;
+    },
+    setIsDiscoveryPanelOpen(state, action: PayloadAction<boolean>) {
+      state.isDiscoveryPanelOpen = action.payload;
+    },
+    setDiscoveredCameras(state, action: PayloadAction<DiscoveredCamera[]>) {
+      state.discoveredCameras = action.payload;
     },
     setEditingNotes(state, action: PayloadAction<string>) {
       state.editingNotes = action.payload;
@@ -121,8 +139,8 @@ const dashboardSlice = createSlice({
       state.presetFormError = '';
       state.activeTab = 'presets';
     },
-    setNewCameraId(state, action: PayloadAction<string>) {
-      state.newCameraId = action.payload;
+    setNewCameraIdentifier(state, action: PayloadAction<string>) {
+        state.newCameraIdentifier = action.payload;
     },
     setNewCameraProtocol(state, action: PayloadAction<string>) {
       state.newCameraProtocol = action.payload;
@@ -134,6 +152,8 @@ export const {
   setSelectedFeatureGroup,
   setActiveTab,
   setIsSettingsOpen,
+  setIsDiscoveryPanelOpen,
+  setDiscoveredCameras,
   setEditingNotes,
   setPresets,
   setSelectedPresetForEditing,
@@ -149,7 +169,7 @@ export const {
   setPresetValue,
   cancelPresetEdit,
   loadPresetForEditing,
-  setNewCameraId,
+  setNewCameraIdentifier,
   setNewCameraProtocol,
 } = dashboardSlice.actions;
 export default dashboardSlice.reducer;

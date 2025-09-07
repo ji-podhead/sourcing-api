@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { useWindowSize } from './handlers/WindowSizeContext';
 import { useSelector, useDispatch } from 'react-redux';
@@ -9,19 +9,12 @@ import {
   setActiveTab,
   setIsSettingsOpen,
   setShowMessage,
-  setEditingNotes,
 } from './redux/dashboardSlice';
 import {
   fetchCameras,
   fetchAllStatuses,
   fetchRecordings,
   fetchPresets,
-  handleSaveNotes,
-  handleSetPublishingPreset,
-  handleFeatureChange,
-  handleCreatePreset,
-  handleUpdatePreset,
-  handleDeletePreset,
   applyPreset,
   connectToLogs,
 } from './redux/thunks';
@@ -38,31 +31,23 @@ const TERMINAL_WEBSOCKET_URL = "ws://localhost:8000/terminal";
 export default function Home() {
   const { height } = useWindowSize();
   const dispatch: AppDispatch = useDispatch();
+  const { selectedCamera } = useSelector((state: RootState) => state.devices);
   const {
-    selectedCamera,
-    ousterStatus,
-  } = useSelector((state: RootState) => state.devices);
-  const {
-    selectedFeatureGroup,
     activeTab,
     isSettingsOpen,
-    editingNotes,
-    presets,
-    presetForm,
-    presetFormError,
-    selectedPresetForEditing,
     refreshInterval,
     message,
     showMessage,
   } = useSelector((state: RootState) => state.dashboard);
+
   useEffect(() => {
     dispatch(fetchCameras());
     dispatch(fetchAllStatuses());
     dispatch(fetchRecordings());
+    dispatch(connectToLogs());
 
     const statusInterval = setInterval(() => {
       dispatch(fetchAllStatuses());
-      dispatch(fetchCameras());
     }, refreshInterval);
     const recordingInterval = setInterval(() => dispatch(fetchRecordings()), 10000);
 
@@ -74,13 +59,9 @@ export default function Home() {
 
   useEffect(() => {
     if (activeTab === 'presets' && selectedCamera) {
-      dispatch(fetchPresets(selectedCamera.identifier));
+      dispatch(fetchPresets(selectedCamera.id));
     }
   }, [dispatch, activeTab, selectedCamera]);
-
-  useEffect(() => {
-    dispatch(connectToLogs());
-  }, [dispatch]);
 
   return (
     <div className="w-full h-full text-black bg-gray-100 p-8">
@@ -113,12 +94,12 @@ export default function Home() {
         </div>
       )}
 
-      <div className="w-full bg-white p-6 rounded-lg shadow-md mb-8 h-[50%] overflow-scroll">
+      <div className="w-full bg-white p-6 rounded-lg shadow-md mb-8">
         <DeviceSelectorPanel />
       </div>
 
       {selectedCamera ? (
-        <div className="flex flex-col md:flex-row gap-4 w-full h-full overflow-scroll " style={{ height: height * 0.5 }}>
+        <div className="flex flex-col md:flex-row gap-4 w-full" style={{ height: height * 0.5 }}>
           <DeviceDetailsPanel />
           <div className="w-full md:w-[80%] bg-gray-50 p-4 rounded-md">
             <div className="flex overflow-x-auto space-x-2 mb-4 pb-2 border-b">
@@ -132,7 +113,7 @@ export default function Home() {
                 onClick={() => {
                   dispatch(setActiveTab('presets'));
                   if (selectedCamera) {
-                    dispatch(fetchPresets(selectedCamera.identifier));
+                    dispatch(fetchPresets(selectedCamera.id));
                   }
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${activeTab === 'presets' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
@@ -160,7 +141,7 @@ export default function Home() {
                       The currently active preset for publishing is: <strong>{selectedCamera.publishing_preset}</strong>
                     </p>
                     <button
-                      onClick={() => dispatch(applyPreset({ deviceIdentifier: selectedCamera.id, presetName: selectedCamera.publishing_preset! }))}
+                      onClick={() => dispatch(applyPreset({ cameraId: selectedCamera.id, presetName: selectedCamera.publishing_preset! }))}
                       className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
                     >
                       Re-apply Preset
@@ -177,12 +158,12 @@ export default function Home() {
         <p className="text-center text-black">Select a device to view its data and settings.</p>
       )}
 
-      <div className="w-full bg-white p-6 rounded-lg shadow-md mb-8">
+      <div className="w-full bg-white p-6 rounded-lg shadow-md mt-8">
         <h2 className="text-2xl font-semibold mb-4">Web Terminal</h2>
         <WebTerminal websocketUrl={TERMINAL_WEBSOCKET_URL} />
       </div>
 
-      <div className="w-full bg-white p-6 rounded-lg shadow-md mb-8">
+      <div className="w-full bg-white p-6 rounded-lg shadow-md mt-8">
         <h2 className="text-2xl font-semibold mb-4">Webviz</h2>
         <div className="w-full h-96 border rounded-md">
           <iframe src="/webviz" className="w-full h-full"></iframe>

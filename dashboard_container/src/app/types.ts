@@ -1,7 +1,8 @@
 'use client'
 export interface DeviceStatus {
-  id: string;
-  identifier: string;
+  id: number;
+  camera_name: string;
+  camera_ip: string;
   type: string;
   config: any;
   status: string;

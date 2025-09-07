@@ -1,4 +1,4 @@
-    -- Table to track if camera features have been initialized
+-- Table to track if camera features have been initialized
     CREATE TABLE IF NOT EXISTS camera_initialized (
         initialized BOOLEAN PRIMARY KEY
     );
@@ -6,7 +6,8 @@
     -- Table for cameras
     CREATE TABLE IF NOT EXISTS cameras (
         id SERIAL PRIMARY KEY,
-        identifier VARCHAR(255) UNIQUE NOT NULL,
+        camera_name VARCHAR(255) UNIQUE NOT NULL,
+        camera_ip VARCHAR(255) DEFAULT 'localhost',
         type VARCHAR(50),
         config JSONB, -- Store configuration as JSON
         user_notes TEXT,
@@ -39,8 +40,8 @@
     -- Table for storing camera presets
     CREATE TABLE IF NOT EXISTS presets (
         id SERIAL PRIMARY KEY,
-        device_identifier VARCHAR(255) NOT NULL, -- Identifier of the device this preset is for
+        camera_name VARCHAR(255) NOT NULL, -- Corresponds to the camera's name
         name VARCHAR(255) NOT NULL, -- Name of the preset
         configuration JSONB, -- Stores the preset configuration in JSON format
-        UNIQUE (device_identifier, name) -- Ensure unique preset names per device
+        UNIQUE (camera_name, name) -- Ensure unique preset names per device
     );

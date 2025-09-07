@@ -6,33 +6,46 @@ import {
   setPresets,
   setRecordings,
   setSelectedFeatureGroup,
+  setDiscoveredCameras,
+  setIsDiscoveryPanelOpen,
 } from './dashboardSlice';
 import { setCameraFeatures, clearCameraFeatures } from './cameraSlice';
-import { addLogMessage, setLogs, clearLogs } from './logSlice';
-  import { DeviceStatus, Preset } from '../types';
+import { addLogMessage } from './logSlice';
+import { DeviceStatus, Preset } from '../types';
 import { RootState } from './store';
-import yaml from 'js-yaml';
 import { ROS_API_URL, LOGS_WEBSOCKET_URL } from '../utils/apiConfig';
 
 export const fetchCameras = createAsyncThunk(
   'devices/fetchCameras',
   async (_, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/get_all_cams/gigE`);
-      if (!response.ok) {
-        throw new Error(`Error fetching cameras: ${response.statusText}`);
-      }
+      const response = await fetch(`${ROS_API_URL}/cameras`);
+      if (!response.ok) throw new Error(`Error fetching cameras: ${response.statusText}`);
       const data = await response.json();
-      const cameras = data || [];
-      dispatch(setDynamicCameras(cameras));
-      return cameras;
-    } catch (error: unknown) {
-      const errorMessage = `Error fetching cameras: ${(error as Error).message}`;
+      dispatch(setDynamicCameras(data || []));
+      return data || [];
+    } catch (error: any) {
+      const errorMessage = `Error fetching cameras: ${error.message}`;
       dispatch(setMessage(errorMessage));
       dispatch(setShowMessage(true));
       throw error;
     }
   }
+);
+
+export const discoverCameras = createAsyncThunk(
+    'devices/discoverCameras',
+    async (_, { dispatch }) => {
+        try {
+            const response = await fetch(`${ROS_API_URL}/discover_cameras`);
+            if (!response.ok) throw new Error('Failed to discover cameras');
+            const data = await response.json();
+            dispatch(setDiscoveredCameras(data));
+        } catch (error: any) {
+            dispatch(setMessage(`Error discovering cameras: ${error.message}`));
+            dispatch(setShowMessage(true));
+        }
+    }
 );
 
 let logsWebSocket: WebSocket | null = null;
@@ -43,28 +56,17 @@ export const connectToLogs = createAsyncThunk(
     if (logsWebSocket) {
       logsWebSocket.close();
     }
-
     logsWebSocket = new WebSocket(LOGS_WEBSOCKET_URL);
-
-    logsWebSocket.onopen = () => {
-      dispatch(addLogMessage("WebSocket connected to log stream"));
-    };
-
+    logsWebSocket.onopen = () => dispatch(addLogMessage("WebSocket connected to log stream"));
     logsWebSocket.onmessage = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.log) {
-          dispatch(addLogMessage(message.log));
-        }
-      } catch (error: unknown) {
+        if (message.log) dispatch(addLogMessage(message.log));
+      } catch (error) {
         dispatch(addLogMessage(`Error parsing WebSocket message: ${event.data}`));
       }
     };
-
-    logsWebSocket.onerror = (error: Event) => {
-      dispatch(addLogMessage(`WebSocket error: ${error}`));
-    };
-
+    logsWebSocket.onerror = (error: Event) => dispatch(addLogMessage(`WebSocket error: ${error}`));
     logsWebSocket.onclose = () => {
       dispatch(addLogMessage("WebSocket disconnected from log stream"));
       logsWebSocket = null;
@@ -74,22 +76,22 @@ export const connectToLogs = createAsyncThunk(
 
 export const applyPreset = createAsyncThunk(
   'presets/applyPreset',
-  async ({ deviceIdentifier, presetName }: { deviceIdentifier: string, presetName: string }, { dispatch }) => {
+  async ({ cameraId, presetName }: { cameraId: number, presetName: string }, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/presets/${deviceIdentifier}/${presetName}/apply`, {
+      const response = await fetch(`${ROS_API_URL}/camera/${cameraId}/publishing_preset`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preset_name: presetName }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        dispatch(setMessage(`Preset '${presetName}' applied successfully!`));
-        dispatch(setShowMessage(true));
-        // After applying the preset, fetch the camera details to update the UI
-        dispatch(fetchCameraDetails({ cameraId: deviceIdentifier, protocol: 'gigE' })); // Assuming gigE, might need to be dynamic
-      } else {
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.detail || response.statusText);
       }
-    } catch (error: unknown) {
-      dispatch(setMessage(`Error applying preset: ${(error as Error).message}`));
+      dispatch(setMessage(`Preset '${presetName}' applied successfully!`));
+      dispatch(setShowMessage(true));
+      dispatch(fetchCameraDetails(cameraId));
+    } catch (error: any) {
+      dispatch(setMessage(`Error applying preset: ${error.message}`));
       dispatch(setShowMessage(true));
     }
   }
@@ -97,36 +99,24 @@ export const applyPreset = createAsyncThunk(
 
 export const handleCreateCamera = createAsyncThunk(
   'devices/handleCreateCamera',
-  async ({ newCameraId, newCameraProtocol }: { newCameraId: string, newCameraProtocol: string }, { dispatch }) => {
+  async ({ identifier }: { identifier: string }, { dispatch }) => {
     try {
-      if (!newCameraId.trim()) {
-        throw new Error("Camera ID (IP) cannot be empty.");
-      }
-      if (newCameraProtocol === 'gigE') {
-        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-        // if (!ipRegex.test(newCameraId)) {
-        //   throw new Error("Invalid IP address format for GigE camera.");
-        // }
-      }
-      const response = await fetch(`${ROS_API_URL}/create_camera`, {
+      if (!identifier.trim()) throw new Error("Identifier cannot be empty.");
+
+      const response = await fetch(`${ROS_API_URL}/camera`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newCameraId,
-          protocol: newCameraProtocol,
-        }),
+        body: JSON.stringify({ identifier }),
       });
       const newCamera = await response.json();
-      if (response.ok) {
-        dispatch(setMessage(`Camera ${newCameraId} created successfully!`));
-        dispatch(setShowMessage(true));
-        await dispatch(fetchCameras());
-        dispatch(fetchCameraDetails({ cameraId: newCameraId, protocol: newCameraProtocol }));
-      } else {
-        throw new Error(newCamera.detail || response.statusText);
-      }
-    } catch (error: unknown) {
-      const errorMessage = `Error creating camera: ${(error as Error).message}`;
+      if (!response.ok) throw new Error(newCamera.detail || response.statusText);
+
+      dispatch(setMessage(`Camera created successfully with ID: ${newCamera.id}!`));
+      dispatch(setShowMessage(true));
+      await dispatch(fetchCameras());
+      dispatch(setIsDiscoveryPanelOpen(false));
+    } catch (error: any) {
+      const errorMessage = `Error creating camera: ${error.message}`;
       dispatch(setMessage(errorMessage));
       dispatch(setShowMessage(true));
       throw error;
@@ -136,36 +126,19 @@ export const handleCreateCamera = createAsyncThunk(
 
 export const handleAction = createAsyncThunk(
   'devices/handleAction',
-  async ({ endpoint, successMessage, errorMessage, device }: { endpoint: string, successMessage: string, errorMessage: string, device: DeviceStatus }, { dispatch }) => {
+  async ({ endpoint, successMessage, errorMessage }: { endpoint: string, successMessage: string, errorMessage: string }, { dispatch }) => {
     try {
-      let requestBody: any = {};
-      let headers: HeadersInit = { "Content-Type": "application/json" };
-
-      if (device.type === "gigE") {
-        requestBody = {
-          protocol: device.type,
-          camera_id: device.id || device.identifier,
-          device_name: device.id,
-        };
-      }
-      let url = `${ROS_API_URL}${endpoint}`;
-      if (device.type === "gigE") {
-        url += `?protocol=${device.type}&camera_id=${device.id || device.identifier}`;
-      }
-      const response = await fetch(url, {
-        method: "POST",
-        headers: headers,
-      });
+      const url = `${ROS_API_URL}${endpoint}`;
+      const response = await fetch(url, { method: "POST" });
       const data = await response.json();
       if (response.ok) {
         dispatch(setMessage(successMessage + (data.message ? ` ${data.message}` : "")));
         dispatch(fetchAllStatuses());
-        dispatch(fetchRecordings());
       } else {
         throw new Error(data.detail || response.statusText);
       }
-    } catch (error: unknown) {
-      const errorMessageText = `${errorMessage}: ${(error as Error).message}`;
+    } catch (error: any) {
+      const errorMessageText = `${errorMessage}: ${error.message}`;
       dispatch(setMessage(errorMessageText));
       dispatch(setShowMessage(true));
       throw new Error(errorMessageText);
@@ -175,23 +148,22 @@ export const handleAction = createAsyncThunk(
 
 export const handleCreatePreset = createAsyncThunk(
   'presets/handleCreatePreset',
-  async ({ deviceIdentifier, presetForm }: { deviceIdentifier: string, presetForm: { name: string, configuration: any } }, { dispatch }) => {
+  async ({ cameraId, presetForm }: { cameraId: number, presetForm: { name: string, configuration: any } }, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/presets/${deviceIdentifier}`, {
+      const response = await fetch(`${ROS_API_URL}/presets/${cameraId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: presetForm.name, configuration: presetForm.configuration }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        dispatch(setMessage(`Preset '${presetForm.name}' created successfully!`));
-        dispatch(setShowMessage(true));
-        dispatch(fetchPresets(deviceIdentifier));
-      } else {
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.detail || response.statusText);
       }
-    } catch (error: unknown) {
-      dispatch(setMessage(`Error creating preset: ${(error as Error).message}`));
+      dispatch(setMessage(`Preset '${presetForm.name}' created successfully!`));
+      dispatch(setShowMessage(true));
+      dispatch(fetchPresets(cameraId));
+    } catch (error: any) {
+      dispatch(setMessage(`Error creating preset: ${error.message}`));
       dispatch(setShowMessage(true));
     }
   }
@@ -199,9 +171,9 @@ export const handleCreatePreset = createAsyncThunk(
 
 export const handleUpdatePreset = createAsyncThunk(
   'presets/handleUpdatePreset',
-  async ({ deviceIdentifier, presetName, presetForm }: { deviceIdentifier: string, presetName: string, presetForm: { name: string, configuration: any } }, { dispatch }) => {
+  async ({ cameraId, presetName, presetForm }: { cameraId: number, presetName: string, presetForm: { name: string, configuration: any } }, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/presets/${deviceIdentifier}/${presetName}`, {
+      const response = await fetch(`${ROS_API_URL}/presets/${cameraId}/${presetName}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: presetForm.name, configuration: presetForm.configuration }),
@@ -210,12 +182,12 @@ export const handleUpdatePreset = createAsyncThunk(
       if (response.ok) {
         dispatch(setMessage(`Preset '${presetForm.name}' updated successfully!`));
         dispatch(setShowMessage(true));
-        dispatch(fetchPresets(deviceIdentifier));
+        dispatch(fetchPresets(cameraId));
       } else {
         throw new Error(data.detail || response.statusText);
       }
-    } catch (error: unknown) {
-      dispatch(setMessage(`Error updating preset: ${(error as Error).message}`));
+    } catch (error: any) {
+      dispatch(setMessage(`Error updating preset: ${error.message}`));
       dispatch(setShowMessage(true));
     }
   }
@@ -223,24 +195,24 @@ export const handleUpdatePreset = createAsyncThunk(
 
 export const handleDeletePreset = createAsyncThunk(
   'presets/handleDeletePreset',
-  async ({ deviceIdentifier, presetName }: { deviceIdentifier: string, presetName: string }, { dispatch }) => {
+  async ({ cameraId, presetName }: { cameraId: number, presetName: string }, { dispatch }) => {
     if (!window.confirm(`Are you sure you want to delete preset "${presetName}"?`)) {
       return;
     }
     try {
-      const response = await fetch(`${ROS_API_URL}/presets/${deviceIdentifier}/${presetName}`, {
+      const response = await fetch(`${ROS_API_URL}/presets/${cameraId}/${presetName}`, {
         method: "DELETE",
       });
       const data = await response.json();
       if (response.ok) {
         dispatch(setMessage(`Preset '${presetName}' deleted successfully!`));
         dispatch(setShowMessage(true));
-        dispatch(fetchPresets(deviceIdentifier));
+        dispatch(fetchPresets(cameraId));
       } else {
         throw new Error(data.detail || response.statusText);
       }
-    } catch (error: unknown) {
-      dispatch(setMessage(`Error deleting preset: ${(error as Error).message}`));
+    } catch (error: any) {
+      dispatch(setMessage(`Error deleting preset: ${error.message}`));
       dispatch(setShowMessage(true));
     }
   }
@@ -248,62 +220,60 @@ export const handleDeletePreset = createAsyncThunk(
 
 export const handleSaveNotes = createAsyncThunk(
   'camera/handleSaveNotes',
-  async ({ cameraIdentifier, notes }: { cameraIdentifier: string, notes: string }, { dispatch }) => {
+  async ({ cameraId, notes }: { cameraId: number, notes: string }, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/camera/${cameraIdentifier}/notes`, {
+      const response = await fetch(`${ROS_API_URL}/camera/${cameraId}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        dispatch(setMessage('Notes saved successfully.'));
-      } else {
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.detail);
       }
-    } catch (error) {
-      dispatch(setMessage(`Error saving notes: ${(error as Error).message}`));
+      dispatch(setMessage('Notes saved successfully.'));
+      dispatch(setShowMessage(true));
+    } catch (error: any) {
+      dispatch(setMessage(`Error saving notes: ${error.message}`));
+      dispatch(setShowMessage(true));
     }
   }
 );
 
 export const handleSetPublishingPreset = createAsyncThunk(
   'camera/handleSetPublishingPreset',
-  async ({ cameraIdentifier, presetName }: { cameraIdentifier: string, presetName: string }, { dispatch, getState }) => {
+  async ({ cameraId, presetName }: { cameraId: number, presetName: string }, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/camera/${cameraIdentifier}/publishing_preset`, {
+      const response = await fetch(`${ROS_API_URL}/camera/${cameraId}/publishing_preset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ preset_name: presetName }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        dispatch(setMessage('Publishing preset set successfully.'));
-        const { devices } = getState() as RootState;
-        if (devices.selectedCamera) {
-          dispatch(fetchCameraDetails({ cameraId: devices.selectedCamera.identifier, protocol: devices.selectedCamera.type }));
-        }
-      } else {
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.detail);
       }
-    } catch (error) {
-      dispatch(setMessage(`Error setting publishing preset: ${(error as Error).message}`));
+      dispatch(setMessage('Publishing preset set successfully.'));
+      dispatch(setShowMessage(true));
+      dispatch(fetchCameraDetails(cameraId));
+    } catch (error: any) {
+      dispatch(setMessage(`Error setting publishing preset: ${error.message}`));
+      dispatch(setShowMessage(true));
     }
   }
 );
 
 export const fetchCameraDetails = createAsyncThunk(
   'devices/fetchCameraDetails',
-  async ({ cameraId, protocol }: { cameraId: string, protocol: string }, { dispatch }) => {
+  async (cameraId: number, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/get_cam/${protocol}/${cameraId}`);
-      if (!response.ok) {
-        throw new Error(`Error fetching camera details for ${cameraId}: ${response.statusText}`);
-      }
+      const response = await fetch(`${ROS_API_URL}/camera/${cameraId}`);
+      if (!response.ok) throw new Error(`Error fetching camera details for ${cameraId}: ${response.statusText}`);
+
       const data = await response.json();
       const augmentedCamera: DeviceStatus = {
         ...data,
-        name: `Camera: ${data.identifier}`,
+        name: `Camera: ${data.camera_name}`,
         path: `/imagingsource`,
         apiEndpoint: `/driver/camera`,
         fileName: `camera_${data.id}.yaml`,
@@ -317,12 +287,10 @@ export const fetchCameraDetails = createAsyncThunk(
         dispatch(setSelectedFeatureGroup(null));
       }
       return augmentedCamera;
-    } catch (error: unknown) {
-      const errorMessage = `Error fetching camera details for ${cameraId}: ${(error as Error).message}`;
+    } catch (error: any) {
+      const errorMessage = `Error fetching camera details: ${error.message}`;
       dispatch(setMessage(errorMessage));
       dispatch(setShowMessage(true));
-      dispatch(setSelectedCamera(null));
-      dispatch(clearCameraFeatures());
       throw error;
     }
   }
@@ -330,21 +298,16 @@ export const fetchCameraDetails = createAsyncThunk(
 
 export const fetchPresets = createAsyncThunk(
   'dashboard/fetchPresets',
-  async (deviceIdentifier: string, { dispatch }) => {
+  async (cameraId: number, { dispatch }) => {
     try {
-      const response = await fetch(`${ROS_API_URL}/presets/${deviceIdentifier}`);
-      if (!response.ok) {
-        throw new Error(`Error fetching presets for device ${deviceIdentifier}: ${response.statusText}`);
-      }
+      const response = await fetch(`${ROS_API_URL}/presets/${cameraId}`);
+      if (!response.ok) throw new Error(`Error fetching presets for device ${cameraId}: ${response.statusText}`);
       const data = await response.json();
       dispatch(setPresets(data.presets || []));
-      return data.presets || [];
-    } catch (error: unknown) {
-      const errorMessage = `Error fetching presets for device ${deviceIdentifier}: ${(error as Error).message}`;
+    } catch (error: any) {
+      const errorMessage = `Error fetching presets: ${error.message}`;
       dispatch(setMessage(errorMessage));
       dispatch(setShowMessage(true));
-      dispatch(setPresets([]));
-      throw error;
     }
   }
 );
@@ -353,14 +316,10 @@ export const fetchAllStatuses = createAsyncThunk(
   'devices/fetchAllStatuses',
   async (_, { dispatch, getState }) => {
     const { devices } = getState() as RootState;
-    const { dynamicCameras, selectedCamera } = devices;
-
-    const fetchStatus = async (endpoint: string, protocol?: string, cameraId?: string): Promise<string> => {
+    const { dynamicCameras } = devices;
+    const fetchStatus = async (endpoint: string, cameraId?: number): Promise<string> => {
       try {
-        let url = `${ROS_API_URL}${endpoint}`;
-        if (protocol && cameraId) {
-          url += `?protocol=${protocol}&camera_id=${cameraId}`;
-        }
+        const url = `${ROS_API_URL}${endpoint}/${cameraId}/status`;
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -371,29 +330,13 @@ export const fetchAllStatuses = createAsyncThunk(
         return "unknown";
       }
     };
-
-    const ousterStatusResult = await fetchStatus("/driver/ouster/status");
-    dispatch(setOusterStatus(ousterStatusResult));
-
     const updatedDynamicCameras = await Promise.all(
       dynamicCameras.map(async (cam) => {
-        const status = await fetchStatus(
-          `/driver/${cam.apiEndpoint.split('/').pop()}/status`,
-          cam.type,
-          cam.id
-        );
+        const status = await fetchStatus(`/driver/camera`, cam.id);
         return { ...cam, status };
       })
     );
-
     dispatch(setDynamicCameras(updatedDynamicCameras));
-
-    if (selectedCamera) {
-      const updatedSelected = updatedDynamicCameras.find((c) => c.id === selectedCamera.id);
-      if (updatedSelected && updatedSelected.status !== selectedCamera.status) {
-        dispatch(setSelectedCamera(updatedSelected));
-      }
-    }
   }
 );
 
@@ -408,8 +351,8 @@ export const fetchRecordings = createAsyncThunk(
       } else {
         throw new Error(`Error fetching recordings: ${response.statusText}`);
       }
-    } catch (error: unknown) {
-      const errorMessage = `Error fetching recordings: ${(error as Error).message}`;
+    } catch (error: any) {
+      const errorMessage = `Error fetching recordings: ${error.message}`;
       dispatch(setMessage(errorMessage));
       dispatch(setShowMessage(true));
     }
@@ -418,7 +361,7 @@ export const fetchRecordings = createAsyncThunk(
 
 export const handleFeatureChange = createAsyncThunk(
   'camera/handleFeatureChange',
-  async ({ cameraId, featureName, newValue, protocol }: { cameraId: string, featureName: string, newValue: any, protocol: string }, { dispatch }) => {
+  async ({ cameraId, featureName, newValue }: { cameraId: number, featureName: string, newValue: any }, { dispatch }) => {
     try {
       const response = await fetch(`${ROS_API_URL}/camera/${cameraId}/set_feature`, {
         method: 'POST',
@@ -429,13 +372,35 @@ export const handleFeatureChange = createAsyncThunk(
       if (response.ok) {
         dispatch(setMessage(`Feature ${featureName} updated successfully!`));
         dispatch(setShowMessage(true));
-        dispatch(fetchCameraDetails({ cameraId, protocol }));
+        dispatch(fetchCameraDetails(cameraId));
       } else {
         throw new Error(data.detail || `Failed to set feature ${featureName}`);
       }
-    } catch (error: unknown) {
-      const errorMessage = `Error updating feature ${featureName}: ${(error as Error).message}`;
+    } catch (error: any) {
+      const errorMessage = `Error updating feature ${featureName}: ${error.message}`;
       dispatch(setMessage(errorMessage));
+      dispatch(setShowMessage(true));
+    }
+  }
+);
+
+export const handleDeleteCamera = createAsyncThunk(
+  'devices/handleDeleteCamera',
+  async (cameraId: number, { dispatch }) => {
+    try {
+      const response = await fetch(`${ROS_API_URL}/camera/${cameraId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        dispatch(setMessage(data.message));
+        dispatch(setShowMessage(true));
+        dispatch(fetchCameras());
+      } else {
+        throw new Error(data.detail || 'Failed to delete camera');
+      }
+    } catch (error: any) {
+      dispatch(setMessage(`Error deleting camera: ${error.message}`));
       dispatch(setShowMessage(true));
     }
   }
