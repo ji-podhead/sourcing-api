@@ -1,20 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // DeviceStatus type from your page.tsx
-export interface DeviceStatus {
-  id: string;
-  identifier: string;
-  type: string;
-  config: any;
-  status: string;
-  features?: any[];
-  name: string;
-  path: string;
-  apiEndpoint: string;
-  fileName: string;
-  user_notes?: string;
-  publishing_preset?: string;
-}
+import { DeviceStatus } from '../types';
 
 interface DevicesState {
   dynamicCameras: DeviceStatus[];

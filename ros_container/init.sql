@@ -6,7 +6,8 @@
     -- Table for cameras
     CREATE TABLE IF NOT EXISTS cameras (
         id SERIAL PRIMARY KEY,
-        identifier VARCHAR(255) UNIQUE NOT NULL,
+        camera_name VARCHAR(255) UNIQUE NOT NULL,
+        camera_ip VARCHAR(255) DEFAULT 'localhost',
         type VARCHAR(50),
         config JSONB, -- Store configuration as JSON
         user_notes TEXT,
@@ -16,7 +17,7 @@
     -- Table for feature groups
     CREATE TABLE IF NOT EXISTS feature_groups (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) UNIQUE NOT NULL
+        camera_name VARCHAR(255) NOT NULL
     );
 
     -- Table for individual features
@@ -39,8 +40,9 @@
     -- Table for storing camera presets
     CREATE TABLE IF NOT EXISTS presets (
         id SERIAL PRIMARY KEY,
-        device_identifier VARCHAR(255) NOT NULL, -- Identifier of the device this preset is for
+        camera_name VARCHAR(255) NOT NULL, -- Identifier of the device this preset is for
         name VARCHAR(255) NOT NULL, -- Name of the preset
         configuration JSONB, -- Stores the preset configuration in JSON format
-        UNIQUE (device_identifier, name) -- Ensure unique preset names per device
+        UNIQUE (camera_name, name) -- Ensure unique preset names per device
     );
+-- Corresponds to the camera's name

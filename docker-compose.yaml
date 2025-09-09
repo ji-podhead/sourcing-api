@@ -17,8 +17,13 @@ services:
     build:
       context: ./ros_container
       dockerfile: Dockerfile
+      args:
+        DOCKER_USER: ${DOCKER_USER}
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
     container_name: ros_container
     hostname: ros_container
+    user: sourcingapi  
     privileged: true # Needed for camera access
     environment:
       CORS_ORIGINS: "http://localhost:3000,http://localhost:8081,http://localhost:8080"
@@ -29,9 +34,9 @@ services:
       ROS_LOCALHOST_ONLY: 0
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       ROS_DOMAIN_ID: 0
-      USER: sourcingapi
-      USER_ID: 1010
-      GROUP_ID: 1000
+      DOCKER_USER: ${DOCKER_USER}
+      USER_ID: ${USER_ID}
+      GROUP_ID: ${GROUP_ID}
       ROS_MASTER_URI: http://localhost:11311
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -49,7 +54,7 @@ services:
       # Sagt diesem Container, wo der ROS 1 Master ist
     working_dir: /home/sourcingapi
     # Change the entrypoint to execute the new script
-    entrypoint: ["/bin/bash", "-c", "./create_user.sh && exec su - sourcingapi -c './start_services.sh'"]
+    entrypoint: ["/bin/bash", "-c", "'./start_services.sh'"]
 
   dashboard_container:
     image: node:20

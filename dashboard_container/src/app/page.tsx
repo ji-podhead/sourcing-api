@@ -59,7 +59,7 @@ export default function Home() {
     dispatch(fetchCameras());
     dispatch(fetchAllStatuses());
     dispatch(fetchRecordings());
-
+    dispatch(connectToLogs());
     const statusInterval = setInterval(() => {
       dispatch(fetchAllStatuses());
       dispatch(fetchCameras());
@@ -74,7 +74,7 @@ export default function Home() {
 
   useEffect(() => {
     if (activeTab === 'presets' && selectedCamera) {
-      dispatch(fetchPresets(selectedCamera.identifier));
+      dispatch(fetchPresets(selectedCamera.id));
     }
   }, [dispatch, activeTab, selectedCamera]);
 
@@ -125,14 +125,14 @@ export default function Home() {
               <button
                 onClick={() => dispatch(setActiveTab('features'))}
                 className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${activeTab === 'features' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
-              >
+              >UNIQUE (device_identifier, name) -- Ensure unique preset names per device
                 Features
               </button>
               <button
                 onClick={() => {
                   dispatch(setActiveTab('presets'));
                   if (selectedCamera) {
-                    dispatch(fetchPresets(selectedCamera.identifier));
+                    dispatch(fetchPresets(selectedCamera.id));
                   }
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${activeTab === 'presets' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
@@ -160,7 +160,7 @@ export default function Home() {
                       The currently active preset for publishing is: <strong>{selectedCamera.publishing_preset}</strong>
                     </p>
                     <button
-                      onClick={() => dispatch(applyPreset({ deviceIdentifier: selectedCamera.id, presetName: selectedCamera.publishing_preset! }))}
+                      onClick={() => dispatch(applyPreset({ cameraId: selectedCamera.id, presetName: selectedCamera.publishing_preset! }))}
                       className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
                     >
                       Re-apply Preset

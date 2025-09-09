@@ -17,7 +17,7 @@ import {
   handleUpdatePreset,
   handleDeletePreset,
 } from '../redux/thunks';
-
+import { CameraFeature } from '../types';
 const PresetsPanel: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
   const {
@@ -79,7 +79,7 @@ const PresetsPanel: React.FC = () => {
                 {selectedCamera?.features?.map((group: any) => (
                   <div key={group.name}>
                     <h5 className="font-semibold mt-2 text-gray-600">{group.name}</h5>
-                    {group.features.map((feature: any) => (
+                    {group.features.map((feature: CameraFeature) => (
                       <div key={feature.name} className="flex items-center justify-between pl-2">
                         <label
                           htmlFor={`preset-feature-${feature.name}`}
@@ -154,9 +154,9 @@ const PresetsPanel: React.FC = () => {
             <button
               onClick={() => {
                 if (selectedPresetForEditing) {
-                  dispatch(handleUpdatePreset({ deviceIdentifier: selectedCamera.identifier, presetName: selectedPresetForEditing.name, presetForm }));
+                  dispatch(handleUpdatePreset({ cameraId: selectedCamera.id, presetName: selectedPresetForEditing.name, presetForm }));
                 } else {
-                  dispatch(handleCreatePreset({ deviceIdentifier: selectedCamera.identifier, presetForm }));
+                  dispatch(handleCreatePreset({ cameraId: selectedCamera.id, presetForm }));
                 }
               }}
               className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-200 ${presetFormError ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-700'}`}
@@ -191,7 +191,7 @@ const PresetsPanel: React.FC = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => dispatch(handleDeletePreset({ deviceIdentifier: selectedCamera.identifier, presetName: preset.name }))}
+                    onClick={() => dispatch(handleDeletePreset({ deviceIdentifier: selectedCamera.id, presetName: preset.name }))}
                     disabled={preset.name === "Default"}
                     className={`font-bold py-1 px-3 rounded text-sm text-white ${preset.name === "Default" ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-700"}`}
                   >

@@ -8,65 +8,51 @@ import ast
 import psycopg2
 import logging
 from utils.gigE.camera_features import GigEInteractiveTool
-from utils.db.db_utils import get_all_gigE_cam_ids, get_gigE_camera, get_db_connection, gigE_camera_exists, create_gigE_camera, get_gigE_features_from_db, update_gigE_feature_in_db, update_feature_writability
+from utils.db.db_utils import (
+    get_gigE_features_from_db,
+    update_gigE_feature_in_db,
+    update_feature_writability,
+    get_camera_name_by_id,
+    get_camera_ip_by_id,
+    get_db_connection
+)
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-
-async def initialize_camera_data(camera_id=None, camera_protocol=None):
+async def initialize_camera_data(camera_id: int):
     """
-    Checks if camera features are initialized in the database.
-    If not, it attempts to create entries for new cameras and then
-    populates the database with their features.
-    If already initialized, it runs the update_camera_features.py script
-    to update the feature values in the database.
+    Initializes or updates features for a given camera ID.
+    This function should be called after a camera is created in the DB.
     """
-    conn = get_db_connection()
-    if not conn:
-        logger.error("Skipping camera data handling due to database connection failure.")
+    camera_name = get_camera_name_by_id(camera_id)
+    camera_ip = get_camera_ip_by_id(camera_id)
+    print(f"initialize_camera_data called for camera ID {camera_id} with name '{camera_name}' and IP '{camera_ip}'")
+    if not camera_name:
+        logger.error(f"No camera found with ID {camera_id} to initialize.")
         return
 
-    try:
-        with conn.cursor() as cur:
-            # Check if camera_initialized table exists
-            # cur.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'camera_initialized');")
-            # table_exists = cur.fetchone()[0]
-            cam_exists= await gigE_camera_exists(camera_id) if camera_id else False
-            if cam_exists:
-                update_camera_features(camera_id)
-            else:
-                logger.info("Camera features not initialized. Processing cameras...")
-                cam = GigEInteractiveTool()
-                try:
-                    await cam.initialize(camera_id)
-                    await create_gigE_camera(camera_id, cam)
-                    logger.info("successfully created cam, updating values")
-                finally:
-                    cam.close() # Ensure camera control is released
+    logger.info(f"Initializing/updating features for {camera_name} ({camera_ip})...")
 
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during camera data handling: {e}")
-        if conn:
-            conn.rollback()
-        # Ensure it's marked as not initialized if a general error occurs
+    cam = GigEInteractiveTool()
+    retries = 3
+    for attempt in range(retries):
         try:
-            # Check if table exists before attempting insert/update
-            cur.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'camera_initialized');")
-            if cur.fetchone()[0]:
-                cur.execute("INSERT INTO camera_initialized (initialized) VALUES (FALSE) ON CONFLICT (initialized) DO UPDATE SET initialized = EXCLUDED.initialized;")
-                conn.commit()
-                logger.info("Marking as not initialized due to unexpected error.")
-            else:
-                logger.warning("Camera initialization table 'camera_initialized' not found. Cannot mark as not initialized.")
-        except Exception as commit_e:
-            logger.error(f"Error marking camera_initialized as FALSE during general error handling: {commit_e}")
-            conn.rollback()
-    finally:
-        if conn:
-            conn.close()
+            identifier = camera_ip if camera_ip and camera_ip != 'localhost' else camera_name
+            await cam.initialize(identifier)
+            
+            # Here, we would ideally pass the feature details to a function that populates the features table.
+            # The current `create_gigE_camera` also handles this, which is a bit of a code smell.
+            # For now, we will rely on a separate update mechanism.
+            update_camera_features(identifier)
 
-
+            logger.info(f"Feature initialization/update for camera ID {camera_id} completed.")
+            break # If successful, break out of the retry loop
+        except Exception as e:
+            logger.error(f"Failed to initialize camera tool for feature update (Attempt {attempt + 1}/{retries}): {e}")
+            if attempt == retries - 1:
+                logger.error(f"Failed to initialize camera tool for feature update after {retries} attempts.")
+        finally:
+            cam.close()
 
 def update_camera_features(camera_identifier="auto"):
     """
@@ -76,11 +62,19 @@ def update_camera_features(camera_identifier="auto"):
     camera = None
     try:
         logger.info(f"Update Camera Features! Connecting to camera: '{camera_identifier}'...")
-        camera = Aravis.Camera.new(camera_identifier)
+        try:
+            camera = Aravis.Camera.new(camera_identifier)
+        except Exception as e:
+            logger.error(f"Error connecting to camera '{camera_identifier}': {e}")
+            camera = None
         if camera is None:
             raise Exception(f"Camera '{camera_identifier}' not found.")
         logger.info(f"Connected to {camera.get_model_name()} ({camera.get_device_id()})")
-        device = camera.props.device # Get the device object to access feature methods
+        try:
+            device = camera.props.device # Get the device object to access feature methods
+        except Exception as e:
+            logger.error(f"Error getting device properties: {e}")
+            raise e
         conn = get_db_connection()
         if not conn:
             logger.error("Cannot update features: Database connection failed.")
@@ -116,26 +110,7 @@ def update_camera_features(camera_identifier="auto"):
                     updated_count += 1
 
                     # Test for writability
-                    is_writable = False
-                    try:
-                        if feature_type == "String":
-                            device.set_string_feature_value(feature_name, current_value)
-                            is_writable = True
-                        elif feature_type == "Boolean":
-                            device.set_boolean_feature_value(feature_name, current_value)
-                            is_writable = True
-                        elif feature_type == "Integer":
-                            device.set_integer_feature_value(feature_name, current_value)
-                            is_writable = True
-                        elif feature_type == "Float":
-                            device.set_float_feature_value(feature_name, current_value)
-                            is_writable = True
-                        elif feature_type == "Enumeration":
-                            device.set_string_feature_value(feature_name, current_value)
-                            is_writable = True
-                    except Exception:
-                        is_writable = False
-                    
+                    is_writable = device.is_feature_writable(feature_name)
                     update_feature_writability(conn, feature_name, group_name, is_writable)
 
                 else:
@@ -155,4 +130,7 @@ def update_camera_features(camera_identifier="auto"):
         if camera:
             del camera # Release camera resources
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except Exception as e:
+                logger.error(f"Error closing database connection: {e}")

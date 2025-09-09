@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to ROS Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/ros_container/api",
+          "remoteRoot": "/home/sourcingapi/ros2_ws/src/api"
+        }
+      ]
+    }
+  ]
+}

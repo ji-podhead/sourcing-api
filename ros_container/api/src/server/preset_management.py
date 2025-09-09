@@ -12,7 +12,6 @@ from utils.db.db_utils import (
     update_preset,
     delete_preset,
 )
-from utils.gigE.camera_manager import get_gigE_camera
 
 logger = logging.getLogger(__name__)
 

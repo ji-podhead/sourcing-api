@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "dein-ros-projekt"
+version = "0.1.0"
+description = "Beschreibung deines Projekts"
+authors = ["Dein Name <deine@email.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"  # ROS Humble läuft auf Python 3.10
+
+# Backend Framework
+fastapi = "*"
+# GEÄNDERT: uvicorn wird jetzt mit den "standard" extras installiert
+uvicorn = {extras = ["standard"], version = "*"}
+
+# System & Utilities
+psutil = "*"
+pyyaml = "*"
+tqdm = "*"
+requests = "*"
+pydantic = "*"
+python-dotenv = "*"
+pillow = "*"
+websockets = "*"
+wsproto = "*"
+packaging = ">=21.0"
+xmltodict = "*"                  # BESTÄTIGT: War bereits enthalten
+psycopg2-binary = "==2.9.1"      # BESTÄTIGT: War bereits enthalten
+
+# Data Science & Computer Vision
+numpy = "1.26.4"                 # GEÄNDERT: Version exakt auf 1.26.4 festgelegt
+opencv-python = "*"
+scipy = "*"
+pandas = "*"
+scikit-learn = "*"
+scikit-image = "==0.25.2"
+matplotlib = "*"
+
+# GObject und seine Abhängigkeiten
+pygobject = "==3.48.2"
+
+# ROS-spezifische Python-Tools
+rosros = "*"
+roslibpy = "*"
+
+# Debugging
+debugpy = "*"
+
+
+[tool.poetry.group.dev.dependencies]
+# Hier könntest du Entwicklungstools wie pytest ablegen
+# pytest = "^7.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

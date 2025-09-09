@@ -63,11 +63,19 @@ class GigEInteractiveTool:
         """Dumps the GenICam XML from the camera and merges group/category features."""
         try:
             print(f"Connecting to camera: '{camera_identifier}'...")
-            self.camera = Aravis.Camera.new(camera_identifier)
+            try:
+                self.camera = Aravis.Camera.new(camera_identifier)
+            except Exception as e:
+                print(f"Error connecting to camera '{camera_identifier}': {e}")
+                self.camera = None
             if self.camera is None:
                 raise Exception(f"Camera '{camera_identifier}' not found.")
             print(f"Connected to {self.camera.get_model_name()} ({self.camera.get_device_id()})")
-            device = self.camera.props.device
+            try:
+                device = self.camera.props.device
+            except Exception as e:
+                print(f"Error getting device properties: {e}")
+                raise e
             genicam_xml = device.get_genicam_xml()
             print("Successfully retrieved GenICam XML.")
             pp = pprint.PrettyPrinter(indent=4)

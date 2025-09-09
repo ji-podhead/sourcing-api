@@ -5,6 +5,7 @@ import os
 import json
 import psycopg2
 import logging
+import ipaddress
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,26 +34,85 @@ def get_db_connection():
         logger.error(f"Database connection failed: {e}")
         return None
 
-async def gigE_camera_exists(camera_identifier: str) -> bool:
-    """Checks if a camera with the given identifier exists in the database."""
+def get_camera_name_by_id(camera_id: int) -> str:
+    """Retrieves the camera name for a specific camera ID."""        
     conn = get_db_connection()
     if not conn:
-        logger.error("Database connection failed. Cannot check camera existence.")
-        return False
-
+       return ""
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM cameras WHERE identifier = %s;", (camera_identifier,))
-            count = cur.fetchone()[0]
-            return count > 0
+            cur.execute("SELECT camera_name FROM cameras WHERE id = %s;", (camera_id,))
+            result = cur.fetchone()
+            return result[0] if result else ""
     except Exception as e:
-        logger.error(f"Error checking camera existence: {e}")
-        return False
+        logger.error(f"Error getting camera name for id {camera_id}: {e}")
+        return ""
     finally:
         if conn:
             conn.close()
 
+def get_camera_ip_by_id(camera_id: int) -> str:
+    """Retrieves the camera IP for a specific camera ID."""
+    conn = get_db_connection()
+    if not conn:
+        return ""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT camera_ip FROM cameras WHERE id = %s;", (camera_id,))
+            result = cur.fetchone()
+            return result[0] if result else ""
+    except Exception as e:
+        logger.error(f"Error getting camera ip for id {camera_id}: {e}")
+        return ""
+    finally:
+        if conn:
+            conn.close()
 
+def is_valid_ip(ip: str):
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+    
+    
+async def find_camera_by_identifier(identifier: str):
+    """Finds a camera by its name or IP address."""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cur:
+            if is_valid_ip(identifier):
+                cur.execute("SELECT id FROM cameras WHERE camera_ip = %s;", (identifier,))
+            else:
+                cur.execute("SELECT id FROM cameras WHERE camera_name = %s;", (identifier,))
+            result = cur.fetchone()
+            return result[0] if result else None
+    except Exception as e:
+        logger.error(f"Error finding camera by identifier {identifier}: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+async def gigE_camera_exists(camera_name: str) -> bool:
+    """Checks if a camera with the given name exists in the database."""
+    conn = get_db_connection()
+    if not conn:
+        logger.error("Database connection failed. Cannot check camera existence.")
+        return False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM cameras WHERE camera_name = %s;", (camera_name,))
+            count = cur.fetchone()[0]
+            return count > 0
+    except Exception as e:
+        logger.error(f"Error checking existence of camera '{camera_name}': {e}")
+        if conn:
+            conn.close()
+        return False
+    
 def get_gigE_features_from_db(conn):
     """Fetches feature names and types from the database."""
     features_to_update = []
@@ -105,36 +165,27 @@ def update_feature_writability(conn, feature_name, group_name, is_writable):
         logger.error(f"Error updating writability for feature '{feature_name}' in group '{group_name}': {e}")
         conn.rollback()
 
-async def create_gigE_camera(camera_identifier: str, details: dict):
-    """Creates a new camera entry and populates its features in the database."""
+async def create_gigE_camera(camera_name: str, camera_ip: str, details: dict):
+    """Creates a new camera entry and populates its features in the database. Returns the camera ID."""
     conn = get_db_connection()
     camera_protocol = "gigE"
-    camera_id = camera_identifier
     if not conn:
         logger.error("Database connection failed. Cannot create camera.")
-        return False
+        return None
 
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT identifier FROM cameras;")
+            # cur.execute("SELECT identifier FROM cameras;")
+            cur.execute(
+                "INSERT INTO cameras (camera_name, camera_ip, type, config) VALUES (%s, %s, %s, %s) ON CONFLICT (camera_name) DO UPDATE SET camera_ip = EXCLUDED.camera_ip RETURNING id;",
+                (camera_name, camera_ip, "gigE", json.dumps({"protocol": "gigE", "ip": camera_ip}))
+            )
+            camera_id = cur.fetchone()[0]
+            conn.commit()
+            logger.info(f"Successfully created or updated camera entry for: {camera_name} with ID: {camera_id}")
+            
             camera_rows = cur.fetchall()
-            if not camera_rows and camera_id:
-                logger.info(f"Attempting to create entry for camera ID: {camera_id} with protocol: {camera_protocol}")
-                try:
-                    default_config = json.dumps({"protocol": camera_protocol, "ip": camera_id})
-                    cur.execute(
-                        "INSERT INTO cameras (identifier, type, config) VALUES (%s, %s, %s) ON CONFLICT (identifier) DO NOTHING;",
-                        (camera_id, camera_protocol, default_config)
-                    )
-                    conn.commit()
-                    logger.info(f"Successfully created entry for camera ID: {camera_id}")
-                    cur.execute("SELECT identifier FROM cameras;")
-                    camera_rows = cur.fetchall()
-                except Exception as insert_e:
-                    logger.error(f"Error creating camera entry for {camera_id}: {insert_e}")
-                    conn.rollback()
-                    return
-            elif not camera_rows and not camera_id:
+            if not camera_rows and not camera_id:
                 logger.warning("No camera identifiers found in the database and no specific camera data provided for initialization.")
                 return
 
@@ -234,9 +285,11 @@ async def create_gigE_camera(camera_identifier: str, details: dict):
         logger.error(f"An unexpected error occurred during camera creation/initialization: {e}")
         if conn:
             conn.rollback()
+        return None
     finally:
         if conn:
             conn.close()
+        return camera_id
             
 async def get_all_gigE_cam_ids():
     """Retrieves all camera identifiers from the database."""
@@ -245,26 +298,25 @@ async def get_all_gigE_cam_ids():
         logger.error("Database connection failed. Cannot retrieve camera IDs.")
         return []
 
-    camera_ids = []
+    cameras = []
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT identifier FROM cameras;")
+            cur.execute("SELECT id, camera_name, camera_ip FROM cameras;")
             rows = cur.fetchall()
             for row in rows:
-                camera_ids.append(row[0])
-        logger.info(f"Retrieved {len(camera_ids)} camera IDs from the database.")
+                cameras.append({"id": row[0], "camera_name": row[1], "camera_ip": row[2]})
+        logger.info(f"Retrieved {len(cameras)} cameras  from the database.")
+        return cameras
+
     except Exception as e:
         logger.error(f"Error retrieving camera IDs: {e}")
     finally:
         if conn:
             conn.close()
-    return camera_ids
 
-from typing import Union
-import json
 
-async def get_gigE_camera(camera_id: Union[str, int]):
-    """Fetches camera details and its features from the database."""
+async def get_gigE_camera(camera_id: int):
+    """Fetches camera details and its features from the database by ID."""
     conn = get_db_connection()
     if not conn:
         logger.error("Database connection failed. Cannot retrieve camera details.")
@@ -272,10 +324,8 @@ async def get_gigE_camera(camera_id: Union[str, int]):
 
     try:
         with conn.cursor() as cur:
-            if isinstance(camera_id, int):
-                cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE id = %s;", (camera_id,))
-            else:
-                cur.execute("SELECT id, identifier, type, config, user_notes, publishing_preset FROM cameras WHERE identifier = %s;", (camera_id,))
+            cur.execute("SELECT id, camera_name, camera_ip, type, config, user_notes, publishing_preset FROM cameras WHERE id = %s;", (camera_id,))            
+        
             camera_row = cur.fetchone()
 
             if not camera_row:
@@ -283,13 +333,14 @@ async def get_gigE_camera(camera_id: Union[str, int]):
                 return None
 
             camera_data = {
-                "id": camera_row[0],
-                "identifier": camera_row[1],
-                "type": camera_row[2],
-                "config": camera_row[3],
-                "user_notes": camera_row[4],
-                "publishing_preset": camera_row[5],
-                "status": "stopped",  # Default status, frontend will update dynamically
+                "id": camera_row[0], 
+                "camera_name": camera_row[1], 
+                "camera_ip": camera_row[2],
+                "type": camera_row[3], 
+                "config": camera_row[4], 
+                "user_notes": camera_row[5],
+                "publishing_preset": camera_row[6], 
+                "status": "stopped", 
                 "features": []
             }
 
@@ -307,12 +358,13 @@ async def get_gigE_camera(camera_id: Union[str, int]):
                     f.representation,
                     f.is_writable
                 FROM
-                    feature_groups fg
+                    features f
                 JOIN
-                    features f ON fg.id = f.group_id
+                    feature_groups fg ON f.group_id = fg.id
+                WHERE f.group_id IN (SELECT id FROM feature_groups WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s))
                 ORDER BY
                     fg.name, f.name;
-            """)
+            """, (camera_id,))
             feature_rows = cur.fetchall()
 
             feature_groups_dict = {}
@@ -347,36 +399,36 @@ async def get_gigE_camera(camera_id: Union[str, int]):
         if conn:
             conn.close()
 
-def update_camera_notes(identifier: str, notes: str) -> bool:
+def update_camera_notes(camera_id: int, notes: str) -> bool:
     """Updates the user notes for a specific camera."""
     conn = get_db_connection()
     if not conn:
         return False
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE cameras SET user_notes = %s WHERE identifier = %s;", (notes, identifier))
+            cur.execute("UPDATE cameras SET user_notes = %s WHERE id = %s;", (notes, camera_id))
             conn.commit()
             return True
     except Exception as e:
-        logger.error(f"Error updating notes for camera '{identifier}': {e}")
+        logger.error(f"Error updating notes for camera '{camera_id}': {e}")
         conn.rollback()
         return False
     finally:
         if conn:
             conn.close()
 
-def update_camera_publishing_preset(identifier: str, preset_name: str) -> bool:
+def update_camera_publishing_preset(camera_id: int, preset_name: str) -> bool:
     """Updates the publishing preset for a specific camera."""
     conn = get_db_connection()
     if not conn:
         return False
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE cameras SET publishing_preset = %s WHERE identifier = %s;", (preset_name, identifier))
+            cur.execute("UPDATE cameras SET publishing_preset = %s WHERE id = %s;", (preset_name, camera_id))
             conn.commit()
             return True
     except Exception as e:
-        logger.error(f"Error updating publishing preset for camera '{identifier}': {e}")
+        logger.error(f"Error updating publishing preset for camera '{camera_id}': {e}")
         conn.rollback()
         return False
     finally:
@@ -385,58 +437,68 @@ def update_camera_publishing_preset(identifier: str, preset_name: str) -> bool:
 
 # --- Preset Management Functions ---
 
-def create_preset(device_identifier: str, name: str, configuration: dict) -> bool:
+def delete_camera_from_db(camera_id: int) -> bool:
     """Creates a new preset in the database."""
     conn = get_db_connection()
-    if not conn:
-        logger.error("Database connection failed. Cannot create preset.")
-        return False
+    if not conn: return False
     try:
         with conn.cursor() as cur:
-            # Ensure configuration is stored as JSONB
-            config_json = json.dumps(configuration)
-            cur.execute(
-                "INSERT INTO presets (device_identifier, name, configuration) VALUES (%s, %s, %s) ON CONFLICT (device_identifier, name) DO NOTHING;",
-                (device_identifier, name, config_json)
-            )
+            camera_name = get_camera_name_by_id(camera_id)
+            cur.execute("DELETE FROM presets WHERE camera_name = %s;", (camera_name,))
+            cur.execute("DELETE FROM features WHERE group_id IN (SELECT id FROM feature_groups WHERE name LIKE %s);", (f"%{camera_name}%",))
+            cur.execute("DELETE FROM cameras WHERE id = %s;", (camera_id,))
             conn.commit()
-            logger.info(f"Preset '{name}' created for device '{device_identifier}'.")
-            return True
+            return cur.rowcount > 0
     except Exception as e:
-        logger.error(f"Error creating preset '{name}' for device '{device_identifier}': {e}")
+        logger.error(f"Error deleting camera ID '{camera_id}': {e}")
         conn.rollback()
         return False
     finally:
         if conn:
             conn.close()
 
-async def get_preset(device_identifier: str, name: str):
-    """Retrieves a specific preset by device identifier and name."""
+
+
+# --- Preset Management Functions ---
+def create_preset(camera_id: int, name: str, configuration: dict) -> bool:
     conn = get_db_connection()
-    if not conn:
-        logger.error("Database connection failed. Cannot retrieve preset.")
-        return None
+    if not conn: return False
+    try:
+        with conn.cursor() as cur:
+            config_json = json.dumps(configuration)
+            cur.execute(
+                "INSERT INTO presets (camera_name, name, configuration) VALUES ((SELECT camera_name FROM cameras WHERE id = %s), %s, %s) ON CONFLICT (camera_name, name) DO NOTHING;",
+                (camera_id, name, config_json)
+            )
+            conn.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Error creating preset '{name}' for camera ID '{camera_id}': {e}")
+        conn.rollback()
+        return False
+    finally:
+        if conn: conn.close()
+# here       
+async def get_preset(camera_id: int, name: str):
+    conn = get_db_connection()
+    if not conn: return None
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT configuration FROM presets WHERE device_identifier = %s AND name = %s;",
-                (device_identifier, name)
+                "SELECT configuration FROM presets WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s) AND name = %s;",
+                (camera_id, name)
             )
             result = cur.fetchone()
-            if result:
-                # The configuration is already a dict, no need to parse
-                return result[0]
-            else:
-                logger.warning(f"Preset '{name}' not found for device '{device_identifier}'.")
-                return None
+
+            return result[0] if result else None
     except Exception as e:
-        logger.error(f"Error retrieving preset '{name}' for device '{device_identifier}': {e}")
+        logger.error(f"Error retrieving preset '{name}' for camera ID '{camera_id}': {e}")
         return None
     finally:
         if conn:
             conn.close()
 
-async def get_presets_for_device(device_identifier: str) -> list:
+async def get_presets_for_device(camera_id: int) -> list:
     """Retrieves all presets for a given device identifier."""
     conn = get_db_connection()
     if not conn:
@@ -445,77 +507,53 @@ async def get_presets_for_device(device_identifier: str) -> list:
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT name, configuration FROM presets WHERE device_identifier = %s;",
-                (device_identifier,)
+                "SELECT name, configuration FROM presets WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s);",
+                (camera_id,)
             )
-            presets = []
-            rows = cur.fetchall()
-            for row in rows:
-                preset_name, configuration = row
-                presets.append({
-                    "name": preset_name,
-                    "configuration": configuration
-                })
-            logger.info(f"Retrieved {len(presets)} presets for device '{device_identifier}'.")
+            presets = [{"name": row[0], "configuration": row[1]} for row in cur.fetchall()]
             return presets
     except Exception as e:
-        logger.error(f"Error retrieving presets for device '{device_identifier}': {e}")
+        logger.error(f"Error retrieving presets for camera ID '{camera_id}': {e}")
         return []
     finally:
         if conn:
             conn.close()
 
-def update_preset(device_identifier: str, name: str, new_configuration: dict) -> bool:
-    """Updates an existing preset's configuration."""
+def update_preset(camera_id: int, name: str, new_configuration: dict) -> bool:
     conn = get_db_connection()
-    if not conn:
-        logger.error("Database connection failed. Cannot update preset.")
-        return False
+    if not conn: return False
     try:
         with conn.cursor() as cur:
             config_json = json.dumps(new_configuration)
             cur.execute(
-                "UPDATE presets SET configuration = %s WHERE device_identifier = %s AND name = %s;",
-                (config_json, device_identifier, name)
+                "UPDATE presets SET configuration = %s WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s) AND name = %s;",
+                (config_json, camera_id, name)
             )
             conn.commit()
-            if cur.rowcount == 0:
-                logger.warning(f"Preset '{name}' not found for device '{device_identifier}' during update.")
-                return False
-            logger.info(f"Preset '{name}' updated for device '{device_identifier}'.")
-            return True
+            return cur.rowcount > 0
     except Exception as e:
-        logger.error(f"Error updating preset '{name}' for device '{device_identifier}': {e}")
+        logger.error(f"Error updating preset '{name}' for camera ID '{camera_id}': {e}")
         conn.rollback()
         return False
     finally:
-        if conn:
-            conn.close()
-
-def delete_preset(device_identifier: str, name: str) -> bool:
-    """Deletes a preset from the database."""
+        if conn: conn.close()
+        
+def delete_preset(camera_id: int, name: str) -> bool:
     conn = get_db_connection()
-    if not conn:
-        logger.error("Database connection failed. Cannot delete preset.")
-        return False
+    if not conn: return False
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM presets WHERE device_identifier = %s AND name = %s;",
-                (device_identifier, name)
+                "DELETE FROM presets WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s) AND name = %s;",
+                (camera_id, name)
             )
             conn.commit()
-            if cur.rowcount == 0:
-                logger.warning(f"Preset '{name}' not found for device '{device_identifier}' during deletion.")
-                return False
-            logger.info(f"Preset '{name}' deleted for device '{device_identifier}'.")
-            return True
+            return cur.rowcount > 0
     except Exception as e:
-        logger.error(f"Error deleting preset '{name}' for device '{device_identifier}': {e}")
+        logger.error(f"Error deleting preset '{name}' for camera ID '{camera_id}': {e}")
         conn.rollback()
         return False
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 # --- END Preset Management Functions ---

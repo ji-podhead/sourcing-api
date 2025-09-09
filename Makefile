@@ -1,10 +1,11 @@
+# Load environment variables from .env file
+export $(shell sed 's/=.*//' .env)
+
 # Project root directory
 PROJECT := $(realpath .)
 
 # User and group IDs for container creation
-USER := $(shell whoami)
-USER_ID := $(shell id -u)
-GROUP_ID := $(shell id -g)
+# Use the environment variables defined in the .env file
 
 # Dockerfile paths
 ROS_BASE_CONTAINER_DOCKERFILE := $(PROJECT)/ros_base_container/Dockerfile
@@ -29,7 +30,7 @@ RECORDINGS := $(PROJECT)/recordings
 build_ros_base:
 	@echo "Building ROS base container image..."
 	docker build \
-		--build-arg USER=$(USER) \
+		--build-arg USER=$$(DOCKER_USER) \
 		--build-arg USER_ID=$(USER_ID) \
 		--build-arg GROUP_ID=$(GROUP_ID) \
 		-f $(ROS_BASE_CONTAINER_DOCKERFILE) \
