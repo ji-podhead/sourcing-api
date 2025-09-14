@@ -14,61 +14,124 @@ from utils.db.db_utils import (
     update_feature_writability,
     get_camera_name_by_id,
     get_camera_ip_by_id,
-    get_db_connection
+    get_db_connection,
+    get_camera_id_by_name
+)
+from utils.db.db_utils import (
+    get_all_gigE_cam_ids,
+    get_gigE_camera,
+    create_gigE_camera,
+    update_camera_notes,
+        update_camera_publishing_preset,
+    find_camera_by_identifier,
+    get_camera_name_by_id,
+    delete_camera_from_db
 )
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-async def initialize_camera_data(camera_id: int):
+async def get_cam_identifiers(camera: int | str):
+    """
+    Fetches camera identifiers from the database.
+    Returns a dictionary mapping camera names to their IP addresses.
+    """
+    try:
+        identifiers={
+            "id": None,
+            "name": None,
+            "ip_address": "localhost"
+        }
+        try:
+            camera = int(camera)
+        except ValueError:
+            pass
+        if isinstance(camera, int):
+            identifiers["id"] = camera
+            identifiers["ip"] = get_camera_ip_by_id(camera)
+            identifiers["name"] = get_camera_name_by_id(camera)
+        elif isinstance(camera, str):
+            if camera == 'localhost':
+                raise ValueError("Camera identifier cannot be 'localhost'. Please provide a valid camera name or ID.")
+            
+            # Attempt to get camera ID by name first
+            camera_id = get_camera_id_by_name(camera)
+            if camera_id != -1:
+                identifiers["id"] = camera_id
+                identifiers["name"] = camera
+                identifiers["ip"] = get_camera_ip_by_id(camera_id)
+            else:
+                # If not found by name, it might be a device ID or other unique identifier.
+                # This part of the logic may need to be adjusted based on how device IDs are stored.
+                # For now, we assume the string is a name.
+                logger.warning(f"No camera found with name '{camera}', attempting to use it as a direct identifier.")
+                identifiers["name"] = camera
+                # If we need to resolve an IP from a unique device ID string, we'd need a different db function.
+                # For now, this path will likely fail if the name isn't in the DB.
+        return identifiers
+    except Exception as e:
+        logger.error(f"Error fetching camera identifiers: {e}")
+        return {}
+
+async def initialize_camera_data(camera,ip):
     """
     Initializes or updates features for a given camera ID.
     This function should be called after a camera is created in the DB.
     """
-    camera_name = get_camera_name_by_id(camera_id)
-    camera_ip = get_camera_ip_by_id(camera_id)
-    print(f"initialize_camera_data called for camera ID {camera_id} with name '{camera_name}' and IP '{camera_ip}'")
-    if not camera_name:
-        logger.error(f"No camera found with ID {camera_id} to initialize.")
-        return
-
-    logger.info(f"Initializing/updating features for {camera_name} ({camera_ip})...")
-
     cam = GigEInteractiveTool()
+    if isinstance(camera, str) and ip:
+        feature_details = await cam.initialize(camera)
+        camera_ip = ip
+        camera_id = await create_gigE_camera(camera, camera_ip, feature_details)
+        camera_name = camera
+
+    else:
+        identifiers = await get_cam_identifiers(camera)
+        camera_id = identifiers["id"]
+        camera_name = identifiers["name"]
+        camera_ip = identifiers["ip"]
+    if camera_ip is None and camera_name is None:
+        logger.error("Camera Ip and name could not be determined for initialization.")
+        return
+        
+    print(f"initialize_camera_data called for camera ID {camera_id} with name '{camera_name}' and IP '{camera_ip}'")
+    logger.info(f"Initializing/updating features for {camera_name} ({camera_ip})...")
     retries = 3
     for attempt in range(retries):
         try:
-            identifier = camera_ip if camera_ip and camera_ip != 'localhost' else camera_name
-            await cam.initialize(identifier)
-            
+
             # Here, we would ideally pass the feature details to a function that populates the features table.
             # The current `create_gigE_camera` also handles this, which is a bit of a code smell.
             # For now, we will rely on a separate update mechanism.
-            update_camera_features(identifier)
-
-            logger.info(f"Feature initialization/update for camera ID {camera_id} completed.")
-            break # If successful, break out of the retry loop
+            await update_camera_features(camera_name)
+            logger.info(f"Feature initialization/update for camera ID {camera_name} completed.")
+            return camera_id
         except Exception as e:
             logger.error(f"Failed to initialize camera tool for feature update (Attempt {attempt + 1}/{retries}): {e}")
             if attempt == retries - 1:
                 logger.error(f"Failed to initialize camera tool for feature update after {retries} attempts.")
         finally:
-            cam.close()
+            if hasattr(cam, 'close') and callable(getattr(cam, 'close')):
+                cam.close()
+            else:
+                logger.warning("Camera object does not have a 'close' method.")
 
-def update_camera_features(camera_identifier="auto"):
+async def update_camera_features(camera_identifier="auto"):
     """
     Connects to the camera, fetches current feature values,
     and updates the database.
     """
     camera = None
     try:
-        logger.info(f"Update Camera Features! Connecting to camera: '{camera_identifier}'...")
+        identifiers = await get_cam_identifiers(camera_identifier)
+        camera_name = identifiers["name"]
+        logger.info(f"Update Camera Features! Connecting to camera: '{camera_name}'...")
         try:
-            camera = Aravis.Camera.new(camera_identifier)
+            camera = Aravis.Camera.new(camera_name)
         except Exception as e:
-            logger.error(f"Error connecting to camera '{camera_identifier}': {e}")
+            logger.error(f"Error connecting to camera '{camera_name}': {e}")
             camera = None
         if camera is None:
-            raise Exception(f"Camera '{camera_identifier}' not found.")
+            raise Exception(f"Camera '{camera_name}' not found.")
         logger.info(f"Connected to {camera.get_model_name()} ({camera.get_device_id()})")
         try:
             device = camera.props.device # Get the device object to access feature methods
@@ -79,7 +142,7 @@ def update_camera_features(camera_identifier="auto"):
         if not conn:
             logger.error("Cannot update features: Database connection failed.")
             return
-        features_to_update = get_gigE_features_from_db(conn)
+        features_to_update = get_gigE_features_from_db(conn, camera_identifier)
         #logger.info(f"fetched features from db: {features_to_update}")
         if not features_to_update:
             logger.warning("No features found in the database to update.")
@@ -106,7 +169,7 @@ def update_camera_features(camera_identifier="auto"):
                     logger.warning(f"Unsupported feature type '{feature_type}' for feature '{feature_name}'.")
                     continue
                 if current_value is not None:
-                    update_gigE_feature_in_db(conn, feature_name, group_name, str(current_value))
+                    update_gigE_feature_in_db(conn, camera_name, feature_name, group_name, str(current_value))
                     updated_count += 1
 
                     # Test for writability
@@ -119,7 +182,7 @@ def update_camera_features(camera_identifier="auto"):
             except Exception as e:
                 logger.error(f"Error processing feature '{feature_name}' (Type: {feature_type}, Group: {group_name}): {e}")
                 # Optionally, try to update the DB with an error indicator or 'notReadable'
-                update_gigE_feature_in_db(conn, feature_name, group_name, "notReadable")
+                update_gigE_feature_in_db(conn, camera_name, feature_name, group_name, "notReadable")
 
         logger.info(f"Successfully updated {updated_count} features in the database.")
 

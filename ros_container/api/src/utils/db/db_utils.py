@@ -34,6 +34,23 @@ def get_db_connection():
         logger.error(f"Database connection failed: {e}")
         return None
 
+def get_camera_id_by_name(camera_name: str) -> int:
+    """Retrieves the camera ID for a specific camera name."""
+    conn = get_db_connection()
+    if not conn:
+        return -1
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM cameras WHERE camera_name = %s;", (camera_name,))
+            result = cur.fetchone()
+            return result[0] if result else -1
+    except Exception as e:
+        logger.error(f"Error getting camera id for name {camera_name}: {e}")
+        return -1
+    finally:
+        if conn:
+            conn.close()
+
 def get_camera_name_by_id(camera_id: int) -> str:
     """Retrieves the camera name for a specific camera ID."""        
     conn = get_db_connection()
@@ -113,16 +130,17 @@ async def gigE_camera_exists(camera_name: str) -> bool:
             conn.close()
         return False
     
-def get_gigE_features_from_db(conn):
-    """Fetches feature names and types from the database."""
+def get_gigE_features_from_db(conn, camera_name: str):
+    """Fetches feature names and types from the database for a specific camera."""
     features_to_update = []
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT f.name, f.type, fg.name as group_name
+                SELECT f.name, f.type, fg.camera_name as group_name
                 FROM features f
-                JOIN feature_groups fg ON f.group_id = fg.id;
-            """)
+                JOIN feature_groups fg ON f.group_id = fg.id
+                WHERE fg.camera_name = %s;
+            """, (camera_name,))
             for row in cur.fetchall():
                 feature_name, feature_type, group_name = row
                 features_to_update.append({
@@ -130,21 +148,21 @@ def get_gigE_features_from_db(conn):
                     "type": feature_type,
                     "group_name": group_name
                 })
-        logger.info(f"Fetched {len(features_to_update)} features from database.")
+        logger.info(f"Fetched {len(features_to_update)} features from database for camera '{camera_name}'.")
         return features_to_update
     except Exception as e:
-        logger.error(f"Error fetching features from database: {e}")
+        logger.error(f"Error fetching features for camera '{camera_name}' from database: {e}")
         return []
 
-def update_gigE_feature_in_db(conn, feature_name, group_name, new_value):
+def update_gigE_feature_in_db(conn, camera_name, feature_name, group_name, new_value):
     """Updates a specific feature's value in the database."""
     try:
         with conn.cursor() as cur:
             cur.execute("""
                 UPDATE features
                 SET value = %s
-                WHERE name = %s AND group_id = (SELECT id FROM feature_groups WHERE name = %s);
-            """, (new_value, feature_name, group_name))
+                WHERE name = %s AND group_id = (SELECT id FROM feature_groups WHERE camera_name = %s) AND group_id IN (SELECT id FROM feature_groups WHERE camera_name = %s);
+            """, (new_value, feature_name, group_name, camera_name))
             conn.commit()
             # logger.debug(f"Updated feature '{feature_name}' in group '{group_name}' with value '{new_value}'.")
     except Exception as e:
@@ -158,7 +176,7 @@ def update_feature_writability(conn, feature_name, group_name, is_writable):
             cur.execute("""
                 UPDATE features
                 SET is_writable = %s
-                WHERE name = %s AND group_id = (SELECT id FROM feature_groups WHERE name = %s);
+                WHERE name = %s AND group_id = (SELECT id FROM feature_groups WHERE camera_name = %s);
             """, (is_writable, feature_name, group_name))
             conn.commit()
     except Exception as e:
@@ -205,12 +223,12 @@ async def create_gigE_camera(camera_name: str, camera_ip: str, details: dict):
 
                 for group_name, group_details in feature_data.items():
                     logger.info(f"Processing feature group: {group_name}")
-                    cur.execute("INSERT INTO feature_groups (name) VALUES (%s) ON CONFLICT (name) DO NOTHING RETURNING id;", (group_name,))
+                    cur.execute("INSERT INTO feature_groups (camera_name) VALUES (%s) ON CONFLICT (camera_name) DO NOTHING RETURNING id;", (group_name,))
                     group_id_row = cur.fetchone()
                     if group_id_row:
                         group_id = group_id_row[0]
                     else:
-                        cur.execute("SELECT id FROM feature_groups WHERE name = %s;", (group_name,))
+                        cur.execute("SELECT id FROM feature_groups WHERE camera_name = %s;", (group_name,))
                         group_id_row = cur.fetchone()
                         if not group_id_row:
                             logger.warning(f"Could not get or create group ID for '{group_name}'. Skipping features in this group.")
@@ -324,8 +342,8 @@ async def get_gigE_camera(camera_id: int):
 
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, camera_name, camera_ip, type, config, user_notes, publishing_preset FROM cameras WHERE id = %s;", (camera_id,))            
-        
+            cur.execute("SELECT id, camera_name, camera_ip, type, config, user_notes, publishing_preset FROM cameras WHERE id = %s;", (camera_id,))
+
             camera_row = cur.fetchone()
 
             if not camera_row:
@@ -333,21 +351,21 @@ async def get_gigE_camera(camera_id: int):
                 return None
 
             camera_data = {
-                "id": camera_row[0], 
-                "camera_name": camera_row[1], 
+                "id": camera_row[0],
+                "camera_name": camera_row[1],
                 "camera_ip": camera_row[2],
-                "type": camera_row[3], 
-                "config": camera_row[4], 
+                "type": camera_row[3],
+                "config": camera_row[4],
                 "user_notes": camera_row[5],
-                "publishing_preset": camera_row[6], 
-                "status": "stopped", 
+                "publishing_preset": camera_row[6],
+                "status": "stopped",
                 "features": []
             }
 
             # Fetch feature groups and their features for this camera
             cur.execute("""
                 SELECT
-                    fg.name AS group_name,
+                    fg.camera_name AS group_name,
                     f.name AS feature_name,
                     f.description,
                     f.type,
@@ -361,16 +379,18 @@ async def get_gigE_camera(camera_id: int):
                     features f
                 JOIN
                     feature_groups fg ON f.group_id = fg.id
-                WHERE f.group_id IN (SELECT id FROM feature_groups WHERE camera_name = (SELECT camera_name FROM cameras WHERE id = %s))
+                JOIN
+                    cameras c ON c.camera_name = fg.camera_name
+                WHERE c.id = %s
                 ORDER BY
-                    fg.name, f.name;
+                    fg.camera_name, f.name;
             """, (camera_id,))
             feature_rows = cur.fetchall()
 
             feature_groups_dict = {}
             for row in feature_rows:
                 group_name, feature_name, description, f_type, value, min_val, max_val, options_str, representation, is_writable = row
-                
+
                 if group_name not in feature_groups_dict:
                     feature_groups_dict[group_name] = {
                         "name": group_name,
@@ -445,7 +465,7 @@ def delete_camera_from_db(camera_id: int) -> bool:
         with conn.cursor() as cur:
             camera_name = get_camera_name_by_id(camera_id)
             cur.execute("DELETE FROM presets WHERE camera_name = %s;", (camera_name,))
-            cur.execute("DELETE FROM features WHERE group_id IN (SELECT id FROM feature_groups WHERE name LIKE %s);", (f"%{camera_name}%",))
+            cur.execute("DELETE FROM features WHERE group_id IN (SELECT id FROM feature_groups WHERE camera_name LIKE %s);", (f"%{camera_name}%",))
             cur.execute("DELETE FROM cameras WHERE id = %s;", (camera_id,))
             conn.commit()
             return cur.rowcount > 0

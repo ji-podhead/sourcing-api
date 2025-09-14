@@ -45,7 +45,7 @@ const DiscoveryPanel: React.FC = () => {
                     <td className="p-2 border-b">
                       {!cam.is_in_db && (
                         <button
-                          onClick={() => dispatch(handleCreateCamera({ identifier: cam.device_id }))}
+                          onClick={() => dispatch(handleCreateCamera({ identifier: cam.name }))}
                           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
                         >
                           Add

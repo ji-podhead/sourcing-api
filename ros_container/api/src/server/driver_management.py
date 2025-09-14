@@ -142,31 +142,28 @@ async def stop_driver(device_name: str, protocol: Optional[str] = None, camera_i
             logger.error(f"Failed to stop {device_name} driver (PID: {process.pid}): {e}")
             raise HTTPException(status_code=500, detail=f"Failed to stop {device_name} driver: {e}")
 
+@router.get("/driver/camera/{camera_name}/status")
+async def get_camera_driver_status(camera_name: str):
+    """
+    Retrieves the current status of a specific GigE camera driver.
+    """
+    node = gige_camera_nodes.get(camera_name)
+    status = "running" if node and node.is_running else "stopped"
+    logger.info(f"Status for GigE camera '{camera_name}': {status}")
+    return {"device": camera_name, "status": status, "protocol": "gigE"}
+
 @router.get("/driver/{device_name}/status")
-async def get_driver_status(device_name: str, protocol: Optional[str] = None, camera_id: Optional[str] = None):
+async def get_driver_status(device_name: str):
     """
-    Retrieves the current status of a specified device driver.
-    Returns "running" if the driver process is active, otherwise "stopped".
+    Retrieves the current status of a specified device driver (non-camera devices).
     """
-    print(f"Getting status for device: {device_name}, protocol: {protocol}, camera_id: {camera_id}"   )
-    if protocol == "gigE":
-        if not camera_id:
-            raise HTTPException(status_code=400, detail="camera_id is required for getting status of a GigE camera.")
+    if device_name not in DEVICE_LAUNCH_SCRIPTS:
+        logger.warning(f"Status requested for unknown device: {device_name}")
+        raise HTTPException(status_code=404, detail=f"Device '{device_name}' not found.")
         
-        node = gige_camera_nodes.get(camera_id)
-        status = "running" if node and node.is_running else "stopped"
-        logger.info(f"Status for GigE camera '{camera_id}': {status}")
-        return {"device": camera_id, "status": status, "protocol": "gigE"}
-    elif protocol == "GMSL2":
-        raise HTTPException(status_code=501, detail=f"GMSL2 protocol is not yet supported for getting driver status.")
-    else: # Fallback to existing subprocess logic
-        if device_name not in DEVICE_LAUNCH_SCRIPTS:
-            logger.warning(f"Status requested for unknown device: {device_name}")
-            raise HTTPException(status_code=404, detail=f"Device '{device_name}' not found.")
-            
-        status = "running" if is_process_running(driver_processes.get(device_name)) else "stopped"
-        logger.info(f"Status for {device_name} driver: {status}")
-        return {"device": device_name, "status": status}
+    status = "running" if is_process_running(driver_processes.get(device_name)) else "stopped"
+    logger.info(f"Status for {device_name} driver: {status}")
+    return {"device": device_name, "status": status}
 
 # Helper function to read and log subprocess output
 async def stream_subprocess_output(process: subprocess.Popen, logger: logging.Logger, device_name: str):

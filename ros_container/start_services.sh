@@ -22,8 +22,8 @@ echo "Starting services..."
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml &
 
 # Add a delay to allow rosbridge_server to initialize
-sleep 10
-
+sleep 1
+cd api
 # Start debugpy
 poetry run python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client /home/sourcingapi/ros2_ws/src/api/src/debug.py &
 

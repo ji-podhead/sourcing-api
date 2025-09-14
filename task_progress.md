@@ -1,0 +1,8 @@
+- [ ] Investigate the "name 'new_camera_id' is not defined" error in `camera_management.py`.
+- [ ] Investigate the "No cameras available for initialization after processing" error.
+- [ ] Investigate the "Must be string, not GigEInteractiveTool" error when connecting to the camera.
+- [ ] Examine `camera_management.py` for camera creation and initialization logic.
+- [ ] Examine `camera_manager.py` for camera object creation and management.
+- [ ] Identify the root cause of the camera initialization failure.
+- [ ] Implement a fix to ensure successful camera initialization.
+- [ ] Test the fix by creating a camera.

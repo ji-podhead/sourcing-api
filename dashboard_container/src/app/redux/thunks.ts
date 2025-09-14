@@ -317,9 +317,9 @@ export const fetchAllStatuses = createAsyncThunk(
   async (_, { dispatch, getState }) => {
     const { devices } = getState() as RootState;
     const { dynamicCameras } = devices;
-    const fetchStatus = async (endpoint: string, cameraId?: number): Promise<string> => {
+    const fetchStatus = async (endpoint: string, cameraName?: string): Promise<string> => {
       try {
-        const url = `${ROS_API_URL}${endpoint}/${cameraId}/status`;
+        const url = `${ROS_API_URL}${endpoint}/${cameraName}/status`;
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -332,7 +332,7 @@ export const fetchAllStatuses = createAsyncThunk(
     };
     const updatedDynamicCameras = await Promise.all(
       dynamicCameras.map(async (cam) => {
-        const status = await fetchStatus(`/driver/camera`, cam.id);
+        const status = await fetchStatus(`/driver/camera`, cam.camera_name);
         return { ...cam, status };
       })
     );
