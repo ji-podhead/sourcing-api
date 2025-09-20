@@ -1,0 +1,8 @@
+- [ ] Analyze the existing code in `gig_e_driver.py`
+- [ ] Identify the section related to image publishing for `image_raw` topic
+- [ ] Remove the calibration part from the image publishing section
+- [ ] Determine the message type for the `services` topic
+- [ ] Create a publisher for the `services` topic
+- [ ] Populate the `services` topic with relevant data
+- [ ] Publish both `image_raw` and `services` topics
+- [ ] Test the changes

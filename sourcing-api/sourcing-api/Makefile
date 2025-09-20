@@ -39,4 +39,10 @@ clean:
 	docker compose down --rmi all -v --remove-orphans
 	@echo "Cleanup complete."
 
-.PHONY: all build build_ros_base build_ros_container up down clean
+.PHONY: all build build_ros_base build_ros_container up down clean build-calibrate
+
+build-calibrate:
+	docker compose build calibrate
+
+run-calibrate:
+	docker compose run calibrate

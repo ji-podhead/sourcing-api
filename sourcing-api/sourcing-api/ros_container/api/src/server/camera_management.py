@@ -15,9 +15,10 @@ from utils.db.db_utils import (
     get_camera_name_by_id,
     delete_camera_from_db
 )
-from devices.gig_e_driver import GigECameraNode
+from devices.gig_e_driver import run_camera_process
 from pydantic import BaseModel
 from .state import gige_camera_nodes
+from multiprocessing import Process, Queue
 from utils.gigE.camera_manager import update_camera_features
 
 logger = logging.getLogger(__name__)
@@ -158,32 +159,55 @@ async def create_camera(data: Dict[str, str]):
 
 @router.post("/camera/{camera}/start")
 async def start_camera(camera: int | str):
-    """Starts the camera node for publishing."""
+    """Starts the camera node in a separate process."""
     identifiers=await get_cam_identifiers(camera)
     camera_id=identifiers["id"] if identifiers["id"] is not None else camera
     if(camera_id is None and isinstance(camera,str)):
         return {"status": "error", "message": f"Camera '{camera}' not found in database."}
+    
     camera_name = get_camera_name_by_id(camera_id)
     if not camera_name:
         raise HTTPException(status_code=404, detail=f"Camera with ID {camera_id} not found.")
 
     if camera_name in gige_camera_nodes:
-        return {"status": "info", "message": "Camera node is already running."}
+        proc = gige_camera_nodes[camera_name].get('process')
+        if proc and proc.is_alive():
+            return {"status": "info", "message": f"Camera node for '{camera_name}' is already running."}
+        else:
+            logger.warning(f"Found a dead process entry for '{camera_name}'. Cleaning up.")
+            gige_camera_nodes.pop(camera_name, None)
 
-    node = GigECameraNode(camera_id=camera_id, ros_host='localhost')
-    node.start()
-    gige_camera_nodes[camera_name] = node
+    logger.info(f"Starting subprocess for camera '{camera_name}' (ID: {camera_id}).")
+    command_queue = Queue()
+    process = Process(target=run_camera_process, args=(camera_id, command_queue), daemon=True)
+    process.start()
+    
+    gige_camera_nodes[camera_name] = {
+        "process": process,
+        "command_queue": command_queue
+    }
 
-    return {"status": "success", "message": f"Camera '{camera_name}' node started successfully."}
+    return {"status": "success", "message": f"Camera node for '{camera_name}' started successfully."}
 
 @router.post("/camera/{camera}/stop")
 async def stop_camera(camera: int | str ):
-    """Stops the camera node."""
+    """Stops the camera node process."""
     identifiers=await get_cam_identifiers(camera)
     camera_name=identifiers["name"]
     if camera_name and camera_name in gige_camera_nodes:
-        node = gige_camera_nodes.pop(camera_name)
-        node.shutdown()
+        logger.info(f"Stopping subprocess for camera '{camera_name}'.")
+        node_info = gige_camera_nodes.pop(camera_name)
+        
+        # Send shutdown command
+        node_info["command_queue"].put("shutdown")
+        
+        # Wait for the process to terminate
+        node_info["process"].join(timeout=5)
+        
+        if node_info["process"].is_alive():
+            logger.warning(f"Process for '{camera_name}' did not terminate gracefully. Terminating.")
+            node_info["process"].terminate()
+            
         return {"status": "success", "message": f"Camera '{camera_name}' node stopped."}
     else:
         return {"status": "info", "message": "Camera node is not running."}

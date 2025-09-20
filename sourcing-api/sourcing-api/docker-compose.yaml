@@ -18,9 +18,12 @@ services:
         DOCKER_USER: ${DOCKER_USER}
     image: ros_container:latest
     container_name: ros_container
+    privileged: true
+
+    network_mode: host
+
     hostname: ros_container
     user: ${DOCKER_USER}
-    privileged: true # Needed for camera access
     environment:
       CORS_ORIGINS: "http://localhost:3000,http://localhost:8081,http://localhost:8080"
       DISPLAY: ${DISPLAY}
@@ -38,13 +41,13 @@ services:
       - ./ros_container/api:/home/${DOCKER_USER}/ros2_ws/src/api # Mount scripts
       - ./data:/home/${DOCKER_USER}/data # For recordings
       - ./ros_container/start_services.sh:/home/${DOCKER_USER}/start_services.sh
+      - ./ros_container/services:/home/${DOCKER_USER}/services
       # - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/ros2_ws/pyproject.toml
     ports:
       - "8000:8000" # FastAPI port
       - "9090:9090" # ROS2 WebSocket port
-    network_mode: host
     depends_on:
-      - roscore
+      # - roscore
       - ros_base_container
     working_dir: /home/${DOCKER_USER}
     entrypoint: ["/bin/bash", "-c", "./start_services.sh"]
@@ -59,8 +62,8 @@ services:
       - "3000:3000" # Dashboard UI port
       - "8083:8083" # Webviz port
     network_mode: host
-    depends_on:
-      - ros_container
+    # depends_on:
+    #   - ros_container
     volumes:
       - ./dashboard_container/:/app/
     entrypoint:
@@ -70,22 +73,22 @@ services:
         # Start dashboard in the background
         (cd /app && npm install && npm run dev) & (cd /webviz && npm run serve-static-webviz -- --port 8083)
 
-  roscore:
-    image: ros:noetic-ros-core
-    command: roscore
-    network_mode: host
+  # roscore:
+  #   image: ros:noetic-ros-core
+  #   command: roscore
+  #   network_mode: host
 
-  ros1_bridge:
-    build: ./bridge_container
-    command: ros2 run ros1_bridge dynamic_bridge --bridge-all-topics
-    restart: unless-stopped
-    depends_on:
-      - roscore
-      - dashboard_container
-      - ros_container
-    environment:
-      ROS_MASTER_URI: "http://localhost:11311"
-    network_mode: host
+  # ros1_bridge:
+  #   build: ./bridge_container
+  #   command: ros2 run ros1_bridge dynamic_bridge --bridge-all-topics
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - roscore
+  #     - dashboard_container
+  #     - ros_container
+  #   environment:
+  #     ROS_MASTER_URI: "http://localhost:11311"
+  #   network_mode: host
 
   db:
     image: postgres:13
@@ -105,6 +108,23 @@ services:
       - "8080:8080"
     depends_on:
       - db
+    network_mode: host
+
+  calibrate:
+    container_name: calibrate
+    image: ros_base_container
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./calibrate/api/calibrate.py:/home/${DOCKER_USER}/ros2_ws/api/calibrate.py # Mount scripts
+      - ./calibrate/start_calibrate.sh:/home/${DOCKER_USER}/start_calibrate.sh
+      - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/pyproject.toml
+    depends_on:
+      - ros_container
+    environment:
+      - ROS_MASTER_URI=http://ros_container:11311
+    privileged: true
+    working_dir: /home/${DOCKER_USER}/ros2_ws/api
+    command: /bin/bash /home/${DOCKER_USER}/start_calibrate.sh
     network_mode: host
 
 volumes:
