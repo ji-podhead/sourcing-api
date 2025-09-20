@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>api</name>
+  <name>ros_api_package</name>
   <version>0.0.0</version>
   <description>API package for GigE camera driver.</description>
   <maintainer email="TODO@example.com">TODO</maintainer>

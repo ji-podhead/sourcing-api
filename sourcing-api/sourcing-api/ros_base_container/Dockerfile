@@ -51,6 +51,14 @@ USER $DOCKER_USER
 COPY --chown=$DOCKER_USER:$GROUP_ID ros_base_container/pyproject.toml $HOME/ros2_ws/api/pyproject.toml
 WORKDIR $HOME/ros2_ws/api
 RUN poetry install --no-root --no-interaction --no-ansi
+
+# ---------------------------- > ROS SERVICES < ------------------------------ #
+# Copy the ROS package source to /opt
+COPY --chown=$DOCKER_USER:$GROUP_ID ./ros_base_container/ros /opt/my_services_package
+
+# Build the package from /opt
+USER $DOCKER_USER
+RUN . /opt/ros/humble/setup.bash && cd /opt/my_services_package && colcon build --symlink-install
 COPY . .
 # ----------------------------- > External Repos < --------------------------- #
 WORKDIR /repos
