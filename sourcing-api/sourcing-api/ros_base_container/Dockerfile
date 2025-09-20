@@ -48,18 +48,26 @@ ENV LANG=en_US.UTF-8
 # Switch to the new user
 USER $DOCKER_USER
 # Copy pyproject.toml and install dependencies
-COPY --chown=$DOCKER_USER:$GROUP_ID ros_base_container/pyproject.toml $HOME/ros2_ws/api/pyproject.toml
-WORKDIR $HOME/ros2_ws/api
+COPY --chown=$DOCKER_USER:$GROUP_ID ros_base_container/pyproject.toml $HOME/ros2_ws/api/src/pyproject.toml
+WORKDIR $HOME/ros2_ws/api/src
 RUN poetry install --no-root --no-interaction --no-ansi
 
 # ---------------------------- > ROS SERVICES < ------------------------------ #
-# Copy the ROS package source to /opt
-COPY --chown=$DOCKER_USER:$GROUP_ID ./ros_base_container/ros /opt/my_services_package
+# Create the my_services_package package
+RUN . /opt/ros/humble/setup.bash && ros2 pkg create --build-type ament_python ros_api_package
+COPY --chown=$DOCKER_USER:$GROUP_ID ./ros $HOME/ros2_ws/ros_api_package/
+
+RUN mkdir -p $HOME/ros2_ws/ros_api_package/resource && touch $HOME/ros2_ws/ros_api_package/resource/ros_api_package
 
 # Build the package from /opt
 USER $DOCKER_USER
-RUN . /opt/ros/humble/setup.bash && cd /opt/my_services_package && colcon build --symlink-install
-COPY . .
+
+RUN . /opt/ros/humble/setup.bash && cd $HOME/ros2_ws/ros_api_package && rm -rf build install && colcon build --packages-select ros_api_package
+RUN  ls /home/sourcingapi/ros2_ws/ros_api_package
+RUN poetry pip3 install /home/sourcingapi/ros2_ws/ros_api_package
+RUN ls $HOME/ros2_ws/ros_api_package
+# Change the owner of the script
+
 # ----------------------------- > External Repos < --------------------------- #
 WORKDIR /repos
 # Clone and build external repositories

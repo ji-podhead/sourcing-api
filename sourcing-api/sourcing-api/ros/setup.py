@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup, find_packages
 
-package_name = 'api'
+package_name = 'ros_api_package'
 
 setup(
     name=package_name,

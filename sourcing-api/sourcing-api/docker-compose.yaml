@@ -42,7 +42,7 @@ services:
       - ./data:/home/${DOCKER_USER}/data # For recordings
       - ./ros_container/start_services.sh:/home/${DOCKER_USER}/start_services.sh
       - ./ros_container/services:/home/${DOCKER_USER}/services
-      # - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/ros2_ws/pyproject.toml
+      - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/ros2_ws/pyproject.toml
     ports:
       - "8000:8000" # FastAPI port
       - "9090:9090" # ROS2 WebSocket port
@@ -102,30 +102,30 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./ros_container/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  adminer:
-    image: adminer
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-    network_mode: host
+  # adminer:
+  #   image: adminer
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - db
+  #   network_mode: host
 
-  calibrate:
-    container_name: calibrate
-    image: ros_base_container
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ./calibrate/api/calibrate.py:/home/${DOCKER_USER}/ros2_ws/api/calibrate.py # Mount scripts
-      - ./calibrate/start_calibrate.sh:/home/${DOCKER_USER}/start_calibrate.sh
-      - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/pyproject.toml
-    depends_on:
-      - ros_container
-    environment:
-      - ROS_MASTER_URI=http://ros_container:11311
-    privileged: true
-    working_dir: /home/${DOCKER_USER}/ros2_ws/api
-    command: /bin/bash /home/${DOCKER_USER}/start_calibrate.sh
-    network_mode: host
+  # calibrate:
+  #   container_name: calibrate
+  #   image: ros_base_container
+  #   volumes:
+  #     - /tmp/.X11-unix:/tmp/.X11-unix:rw
+  #     - ./calibrate/api/calibrate.py:/home/${DOCKER_USER}/ros2_ws/api/calibrate.py # Mount scripts
+  #     - ./calibrate/start_calibrate.sh:/home/${DOCKER_USER}/start_calibrate.sh
+  #     - ./ros_base_container/pyproject.toml:/home/${DOCKER_USER}/pyproject.toml
+  #   depends_on:
+  #     - ros_container
+  #   environment:
+  #     - ROS_MASTER_URI=http://ros_container:11311
+  #   privileged: true
+  #   working_dir: /home/${DOCKER_USER}/ros2_ws/api
+  #   command: /bin/bash /home/${DOCKER_USER}/start_calibrate.sh
+  #   network_mode: host
 
 volumes:
   postgres_data:

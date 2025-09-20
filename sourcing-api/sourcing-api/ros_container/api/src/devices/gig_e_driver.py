@@ -17,7 +17,7 @@ import queue
 from queue import Empty
 
 # Import custom services
-from my_services_package.ros.srv import Getfeatures,Setfeature # Assuming you have a srv file named GetFeatures.srv
+from ros_api_package import Getfeatures, Setfeature
 logger = logging.getLogger(__name__)
 
 class GigECameraDriverNode(Node):
